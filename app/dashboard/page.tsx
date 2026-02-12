@@ -3,9 +3,10 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { healthPrisma } from "@/lib/prisma";
-import { computeRisk, riskExplanation, type RiskInput } from "@/lib/risk";
+import { riskExplanation, type RiskInput } from "@/lib/risk";
 import { calculateAge, calculateBmi } from "@/lib/health";
 import RiskCard from "./risk-card";
+import RiskChart, { type AssessmentPoint } from "./risk-chart";
 import SignOutButton from "./sign-out-button";
 
 export default async function DashboardPage() {
@@ -19,12 +20,15 @@ export default async function DashboardPage() {
 
   if (!baseline) redirect("/onboarding");
 
-  const assessment = await healthPrisma.assessment.findFirst({
+  // Fetch all assessments for the chart, ordered oldest → newest
+  const assessments = await healthPrisma.assessment.findMany({
     where: { userId },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
   });
 
-  if (!assessment) redirect("/onboarding");
+  if (assessments.length === 0) redirect("/onboarding");
+
+  const assessment = assessments[assessments.length - 1];
 
   // Fetch latest medical record if any
   const medical = await healthPrisma.medical.findFirst({
@@ -46,18 +50,50 @@ export default async function DashboardPage() {
     ...(medicalData?.ldl !== undefined && { ldl: medicalData.ldl }),
     ...(medicalData?.hdl !== undefined && { hdl: medicalData.hdl }),
     ...(medicalData?.glucose !== undefined && { glucose: medicalData.glucose }),
-    ...(medicalData?.triglycerides !== undefined && { triglycerides: medicalData.triglycerides }),
+    ...(medicalData?.triglycerides !== undefined && {
+      triglycerides: medicalData.triglycerides,
+    }),
   };
 
   const miExplanation = riskExplanation("mi", assessment.miScore, riskInput);
-  const strokeExplanation = riskExplanation("stroke", assessment.strokeScore, riskInput);
+  const strokeExplanation = riskExplanation(
+    "stroke",
+    assessment.strokeScore,
+    riskInput,
+  );
   const hfExplanation = riskExplanation("hf", assessment.hfScore, riskInput);
+
+  // Build chart data — include time when multiple assessments share a date
+  const chartData: AssessmentPoint[] = assessments.map((a) => {
+    const d = new Date(a.createdAt);
+    const base = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    const time = d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    return { date: `${base}, ${time}`, mi: a.miScore, stroke: a.strokeScore, hf: a.hfScore };
+  });
 
   return (
     <div className="min-h-screen bg-teal-50 dark:bg-black">
       <header className="border-b border-teal-100 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <h1 className="text-lg font-bold text-teal-600 dark:text-teal-400">
+          <h1 className="flex items-center gap-2 text-lg font-bold text-teal-600 dark:text-teal-400">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+            >
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+            </svg>
             My Heart Tracker
           </h1>
           <div className="flex items-center gap-4">
@@ -70,65 +106,62 @@ export default async function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-6 py-8">
-        <section className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-zinc-50">
-            Your Profile
-          </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Stat label="Age" value={`${age}`} />
-            <Stat label="BMI" value={bmi.toFixed(1)} />
-            <Stat label="Smoker" value={baseline.smoker ? "Yes" : "No"} />
-            <Stat label="Diabetes" value={baseline.diabetes ? "Yes" : "No"} />
-          </div>
+        {/* Condensed profile summary */}
+        <section className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-700 dark:text-zinc-300">
+          <span>Age {age}</span>
+          <span className="text-slate-300 dark:text-zinc-600">&middot;</span>
+          <span>BMI {bmi.toFixed(1)}</span>
+          <span className="text-slate-300 dark:text-zinc-600">&middot;</span>
+          <span>{baseline.smoker ? "Smoker" : "Non-smoker"}</span>
+          <span className="text-slate-300 dark:text-zinc-600">&middot;</span>
+          <span>{baseline.diabetes ? "Diabetes" : "No diabetes"}</span>
+          <Link
+            href="/dashboard/medical"
+            className="ml-auto rounded-lg border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-950"
+          >
+            Add Medical Data
+          </Link>
         </section>
 
-        <section className="mb-8">
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/dashboard/medical"
-              className="rounded-lg border border-teal-600 px-4 py-2 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-950"
-            >
-              Add Medical Data
-            </Link>
-          </div>
-        </section>
+        {/* Risk Over Time chart (only with 2+ assessments) */}
+        {assessments.length >= 2 && (
+          <section className="mb-8">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-zinc-50">
+              Risk Over Time
+            </h2>
+            <div className="rounded-xl border border-teal-100 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+              <RiskChart assessments={chartData} />
+            </div>
+          </section>
+        )}
 
+        {/* Latest Assessment risk cards */}
         <section>
           <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-zinc-50">
-            10-Year Risk Assessment
+            Latest Assessment
           </h2>
           <div className="grid gap-4 sm:grid-cols-3">
             <RiskCard
               title="Myocardial Infarction"
               score={assessment.miScore}
               explanation={miExplanation}
+              accent="blue"
             />
             <RiskCard
               title="Stroke"
               score={assessment.strokeScore}
               explanation={strokeExplanation}
+              accent="violet"
             />
             <RiskCard
               title="Heart Failure"
               score={assessment.hfScore}
               explanation={hfExplanation}
+              accent="amber"
             />
           </div>
         </section>
       </main>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-teal-100 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-      <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">
-        {label}
-      </p>
-      <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-zinc-50">
-        {value}
-      </p>
     </div>
   );
 }

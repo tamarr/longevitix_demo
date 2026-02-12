@@ -4,8 +4,9 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "./generated/pii-client"
+  provider      = "prisma-client-js"
+  output        = "./generated/pii-client"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 model User {

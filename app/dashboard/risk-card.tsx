@@ -2,19 +2,26 @@
 
 import { useState } from "react";
 import { riskLevel, type RiskExplanation } from "@/lib/risk";
-import { riskColor, riskBorderColor } from "@/lib/ui";
+import { riskColor } from "@/lib/ui";
+
+const accentMap = {
+  blue: { border: "border-blue-400", shadow: "0 4px 14px -2px rgba(96,165,250,0.3)" },
+  violet: { border: "border-violet-400", shadow: "0 4px 14px -2px rgba(167,139,250,0.3)" },
+  amber: { border: "border-amber-400", shadow: "0 4px 14px -2px rgba(251,191,36,0.3)" },
+} as const;
 
 interface RiskCardProps {
   title: string;
   score: number;
   explanation: RiskExplanation;
+  accent: keyof typeof accentMap;
 }
 
-export default function RiskCard({ title, score, explanation }: RiskCardProps) {
+export default function RiskCard({ title, score, explanation, accent }: RiskCardProps) {
   const [expanded, setExpanded] = useState(false);
   const level = riskLevel(score);
   const color = riskColor(score);
-  const borderColor = riskBorderColor(score);
+  const borderColor = accentMap[accent];
 
   return (
     <div className={`rounded-xl border border-teal-100 border-l-4 ${borderColor} bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950`}>

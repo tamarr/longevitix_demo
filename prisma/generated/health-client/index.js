@@ -183,6 +183,10 @@ const config = {
         "fromEnvVar": null,
         "value": "darwin-arm64",
         "native": true
+      },
+      {
+        "fromEnvVar": null,
+        "value": "debian-openssl-3.0.x"
       }
     ],
     "previewFeatures": [],
@@ -200,6 +204,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -208,8 +213,8 @@ const config = {
       }
     }
   },
-  "inlineSchema": "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"HEALTH_DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"./generated/health-client\"\n}\n\nmodel Baseline {\n  id        String   @id @default(cuid())\n  userId    String // CUID from User DB\n  birthdate DateTime\n  height    Float\n  weight    Float\n  smoker    Boolean\n  diabetes  Boolean\n}\n\nmodel Lifestyle {\n  id         String   @id @default(cuid())\n  userId     String\n  recordedAt DateTime @default(now())\n  data       Json // restingHr, vo2max, active_minutes\n}\n\nmodel Medical {\n  id         String   @id @default(cuid())\n  userId     String\n  recordedAt DateTime @default(now())\n  data       Json // sbp, ldl, hdl\n}\n\nmodel Assessment {\n  id        String   @id @default(cuid())\n  userId    String\n  createdAt DateTime @default(now())\n\n  lifestyleId String? // the triggering lifestyle input\n  medicalId   String? // the triggering medical input\n\n  miScore     Int\n  strokeScore Int\n  hfScore     Int\n}\n",
-  "inlineSchemaHash": "2b8be054880abd8ff08966ab132fc667e2b6b889e3862c1af0f0f6dee9ff4d99",
+  "inlineSchema": "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"HEALTH_DATABASE_URL\")\n}\n\ngenerator client {\n  provider      = \"prisma-client-js\"\n  output        = \"./generated/health-client\"\n  binaryTargets = [\"native\", \"debian-openssl-3.0.x\"]\n}\n\nmodel Baseline {\n  id        String   @id @default(cuid())\n  userId    String // CUID from User DB\n  birthdate DateTime\n  height    Float\n  weight    Float\n  smoker    Boolean\n  diabetes  Boolean\n}\n\nmodel Lifestyle {\n  id         String   @id @default(cuid())\n  userId     String\n  recordedAt DateTime @default(now())\n  data       Json // restingHr, vo2max, active_minutes\n}\n\nmodel Medical {\n  id         String   @id @default(cuid())\n  userId     String\n  recordedAt DateTime @default(now())\n  data       Json // sbp, ldl, hdl\n}\n\nmodel Assessment {\n  id        String   @id @default(cuid())\n  userId    String\n  createdAt DateTime @default(now())\n\n  lifestyleId String? // the triggering lifestyle input\n  medicalId   String? // the triggering medical input\n\n  miScore     Int\n  strokeScore Int\n  hfScore     Int\n}\n",
+  "inlineSchemaHash": "b9c5d4786764b6942a73e686f12db3aaaa68d27230d50ab88905a6217bbb37b9",
   "copyEngine": true
 }
 
@@ -250,6 +255,10 @@ Object.assign(exports, Prisma)
 // file annotations for bundling tools to include these files
 path.join(__dirname, "libquery_engine-darwin-arm64.dylib.node");
 path.join(process.cwd(), "prisma/generated/health-client/libquery_engine-darwin-arm64.dylib.node")
+
+// file annotations for bundling tools to include these files
+path.join(__dirname, "libquery_engine-debian-openssl-3.0.x.so.node");
+path.join(process.cwd(), "prisma/generated/health-client/libquery_engine-debian-openssl-3.0.x.so.node")
 // file annotations for bundling tools to include these files
 path.join(__dirname, "schema.prisma");
 path.join(process.cwd(), "prisma/generated/health-client/schema.prisma")
