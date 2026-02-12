@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "postinstall": "prisma generate --schema=prisma/schema.user.prisma && prisma generate --schema=prisma/schema.health.prisma",
-    "build": "next build",
+    "build": "npx prisma migrate deploy && npx prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run"
