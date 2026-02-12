@@ -1,0 +1,46 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("HEALTH_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/health-client"
+}
+
+model Baseline {
+  id        String   @id @default(cuid())
+  userId    String   // CUID from User DB
+  birthdate DateTime
+  height    Float
+  weight    Float
+  smoker    Boolean
+  diabetes  Boolean
+}
+
+model Lifestyle {
+  id         String   @id @default(cuid())
+  userId     String
+  recordedAt DateTime @default(now())
+  data       Json     // restingHr, vo2max, active_minutes
+}
+
+model Medical {
+  id         String   @id @default(cuid())
+  userId     String
+  recordedAt DateTime @default(now())
+  data       Json     // sbp, ldl, hdl
+}
+
+model Assessment {
+  id         String   @id @default(cuid())
+  userId     String
+  createdAt  DateTime @default(now())
+
+  lifestyleId String? // the triggering lifestyle input
+  medicalId   String? // the triggering medical input
+
+  miScore     Int
+  strokeScore Int
+  hfScore     Int
+}
