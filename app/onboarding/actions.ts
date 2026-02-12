@@ -1,19 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/auth";
 import { healthPrisma } from "@/lib/prisma";
 import { computeRisk } from "@/lib/risk";
+import { calculateAge, calculateBmi } from "@/lib/health";
 import { validateBaseline } from "./validation";
 
-export async function submitBaseline(
-  _prevState: string | null,
-  formData: FormData
-): Promise<string | null> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return "Not authenticated";
-
+export const submitBaseline = withAuth(async (userId, formData) => {
   const raw = {
     birthdate: formData.get("birthdate") as string,
     height: formData.get("height") as string,
@@ -30,14 +24,13 @@ export async function submitBaseline(
   const { birthdate, height, weight, smoker, diabetes } = result.data;
 
   const birth = new Date(birthdate);
-  const now = new Date();
-  const age = now.getFullYear() - birth.getFullYear();
-  const bmi = weight / ((height / 100) ** 2);
+  const age = calculateAge(birth);
+  const bmi = calculateBmi(weight, height);
   const risk = computeRisk({ age, bmi, smoker, diabetes });
 
   await healthPrisma.baseline.create({
     data: {
-      userId: session.user.id,
+      userId,
       birthdate: birth,
       height,
       weight,
@@ -48,7 +41,7 @@ export async function submitBaseline(
 
   await healthPrisma.assessment.create({
     data: {
-      userId: session.user.id,
+      userId,
       miScore: risk.mi,
       strokeScore: risk.stroke,
       hfScore: risk.hf,
@@ -56,4 +49,4 @@ export async function submitBaseline(
   });
 
   redirect("/dashboard");
-}
+});

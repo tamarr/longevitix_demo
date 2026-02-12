@@ -70,20 +70,28 @@ export default function BaselineForm() {
       </div>
 
       <div className="flex gap-6">
-        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-zinc-300">
-          <input
-            type="checkbox"
-            name="smoker"
-            className="h-4 w-4 rounded border-zinc-300 accent-teal-600"
-          />
+        <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-700 dark:text-zinc-300">
+          <span className="relative inline-flex items-center">
+            <input
+              type="checkbox"
+              name="smoker"
+              className="peer sr-only"
+            />
+            <span className="h-6 w-11 rounded-full bg-zinc-300 transition-colors peer-checked:bg-teal-600 peer-focus-visible:ring-2 peer-focus-visible:ring-teal-500 peer-focus-visible:ring-offset-2 dark:bg-zinc-600 dark:peer-checked:bg-teal-500" />
+            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+          </span>
           Current smoker
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-zinc-300">
-          <input
-            type="checkbox"
-            name="diabetes"
-            className="h-4 w-4 rounded border-zinc-300 accent-teal-600"
-          />
+        <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-700 dark:text-zinc-300">
+          <span className="relative inline-flex items-center">
+            <input
+              type="checkbox"
+              name="diabetes"
+              className="peer sr-only"
+            />
+            <span className="h-6 w-11 rounded-full bg-zinc-300 transition-colors peer-checked:bg-teal-600 peer-focus-visible:ring-2 peer-focus-visible:ring-teal-500 peer-focus-visible:ring-offset-2 dark:bg-zinc-600 dark:peer-checked:bg-teal-500" />
+            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+          </span>
           Diabetes
         </label>
       </div>

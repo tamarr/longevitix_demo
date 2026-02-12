@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { calculateAge } from "@/lib/health";
 
 const baselineSchema = z.object({
   birthdate: z
@@ -8,8 +9,7 @@ const baselineSchema = z.object({
       (val) => {
         const birth = new Date(val);
         if (isNaN(birth.getTime())) return false;
-        const now = new Date();
-        const age = now.getFullYear() - birth.getFullYear();
+        const age = calculateAge(birth);
         return age >= 18 && age <= 120;
       },
       { message: "Age must be between 18 and 120." }

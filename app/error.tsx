@@ -1,6 +1,6 @@
 "use client";
 
-export default function DashboardError({
+export default function GlobalError({
   error,
   reset,
 }: {
@@ -14,7 +14,7 @@ export default function DashboardError({
           Something went wrong
         </h2>
         <p className="text-sm text-slate-600 dark:text-zinc-400">
-          {error.message || "An unexpected error occurred while loading your dashboard."}
+          {error.message || "An unexpected error occurred."}
         </p>
         <button
           onClick={reset}
