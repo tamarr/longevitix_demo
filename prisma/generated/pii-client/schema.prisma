@@ -18,8 +18,6 @@ model User {
 
   accounts Account[]
   sessions Session[]
-
-  @@map("user")
 }
 
 model Account {
@@ -39,7 +37,6 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@map("account")
 }
 
 model Session {
@@ -49,8 +46,6 @@ model Session {
   expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("session")
 }
 
 model VerificationToken {
@@ -59,5 +54,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-  @@map("verificationToken")
 }

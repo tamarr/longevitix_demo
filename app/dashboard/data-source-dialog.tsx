@@ -86,7 +86,7 @@ export default function DataSourceDialog({
       <button
         type="button"
         onClick={() => dialogRef.current?.showModal()}
-        className="text-xs text-teal-600 underline-offset-2 hover:underline dark:text-teal-400"
+        className="text-xs underline text-teal-600 underline-offset-2 hover:underline dark:text-teal-400"
       >
         Based on:{" "}
         {[
@@ -99,7 +99,7 @@ export default function DataSourceDialog({
 
       <dialog
         ref={dialogRef}
-        className="w-full max-w-md rounded-xl border border-teal-100 bg-white p-0 shadow-lg backdrop:bg-black/40 dark:border-zinc-800 dark:bg-zinc-950"
+        className="w-full max-w-md m-auto rounded-xl border border-teal-100 bg-white p-0 shadow-lg backdrop:bg-black/40 dark:border-zinc-800 dark:bg-zinc-950"
       >
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">

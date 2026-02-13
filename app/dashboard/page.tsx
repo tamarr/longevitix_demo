@@ -110,11 +110,11 @@ export default async function DashboardPage() {
         {/* Condensed profile summary */}
         <section className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-700 dark:text-zinc-300">
           <span>Age {age}</span>
-          <span className="text-slate-300 dark:text-zinc-600">&middot;</span>
+          <span className="text-slate-300 dark:text-zinc-400 text-xl">&middot;</span>
           <span>BMI {bmi.toFixed(1)}</span>
-          <span className="text-slate-300 dark:text-zinc-600">&middot;</span>
+          <span className="text-slate-300 dark:text-zinc-400 text-xl">&middot;</span>
           <span>{baseline.smoker ? "Smoker" : "Non-smoker"}</span>
-          <span className="text-slate-300 dark:text-zinc-600">&middot;</span>
+          <span className="text-slate-300 dark:text-zinc-400 text-xl">&middot;</span>
           <span>{baseline.diabetes ? "Diabetes" : "No diabetes"}</span>
           <div className="ml-auto flex gap-2">
             <Link
