@@ -16,35 +16,33 @@ export default async function DashboardPage() {
   const userId = session?.user?.id;
   if (!userId) redirect("/");
 
-  const baseline = await healthPrisma.baseline.findFirst({
+  const baseline = await healthPrisma.baseline.findUnique({
     where: { userId },
   });
 
   if (!baseline) redirect("/onboarding");
 
-  // Fetch the most recent assessments (newest first), then reverse for chart
-  const assessments = await healthPrisma.assessment.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: MAX_ASSESSMENTS,
-  });
+  // Parallel fetch: assessments, latest labs, latest lifestyle
+  const [assessmentsDesc, labs, lifestyle] = await Promise.all([
+    healthPrisma.assessment.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: MAX_ASSESSMENTS,
+    }),
+    healthPrisma.medical.findFirst({
+      where: { userId },
+      orderBy: { recordedAt: "desc" },
+    }),
+    healthPrisma.lifestyle.findFirst({
+      where: { userId },
+      orderBy: { recordedAt: "desc" },
+    }),
+  ]);
 
-  if (assessments.length === 0) redirect("/onboarding");
+  if (assessmentsDesc.length === 0) redirect("/onboarding");
 
-  assessments.reverse();
+  const assessments = assessmentsDesc.reverse();
   const assessment = assessments[assessments.length - 1];
-
-  // Fetch latest lab results if any
-  const labs = await healthPrisma.medical.findFirst({
-    where: { userId },
-    orderBy: { recordedAt: "desc" },
-  });
-
-  // Fetch latest lifestyle record if any
-  const lifestyle = await healthPrisma.lifestyle.findFirst({
-    where: { userId },
-    orderBy: { recordedAt: "desc" },
-  });
 
   // Build risk input with lab and lifestyle data if available
   const labsData = labs?.data as Record<string, number> | null;

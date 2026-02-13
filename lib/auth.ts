@@ -39,12 +39,31 @@ export async function getAuthenticatedUserId(): Promise<string | null> {
   return session?.user?.id ?? null;
 }
 
+export type ActionState = {
+  error: string;
+  fieldErrors?: Record<string, string>;
+} | null;
+
+export function validationError(
+  issues: { path: PropertyKey[]; message: string }[],
+): ActionState {
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of issues) {
+    const field = issue.path[0]?.toString();
+    if (field && !fieldErrors[field]) fieldErrors[field] = issue.message;
+  }
+  return {
+    error: issues[0]?.message ?? "Validation failed",
+    ...(Object.keys(fieldErrors).length > 0 && { fieldErrors }),
+  };
+}
+
 export function withAuth(
-  handler: (userId: string, formData: FormData) => Promise<string | null>
-): (prevState: string | null, formData: FormData) => Promise<string | null> {
+  handler: (userId: string, formData: FormData) => Promise<ActionState>,
+): (prevState: ActionState, formData: FormData) => Promise<ActionState> {
   return async (_prevState, formData) => {
     const userId = await getAuthenticatedUserId();
-    if (!userId) return "Not authenticated";
+    if (!userId) return { error: "Not authenticated" };
     return handler(userId, formData);
   };
 }

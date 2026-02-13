@@ -5,13 +5,13 @@ import { useActionState } from "react";
 import { submitLifestyle } from "./actions";
 
 export default function LifestyleForm() {
-  const [error, formAction, isPending] = useActionState(submitLifestyle, null);
+  const [state, formAction, isPending] = useActionState(submitLifestyle, null);
 
   return (
     <form action={formAction} className="space-y-5">
-      {error && (
+      {state?.error && !state.fieldErrors && (
         <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
-          {error}
+          {state.error}
         </p>
       )}
 
@@ -32,9 +32,13 @@ export default function LifestyleForm() {
           placeholder="68"
           className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
-        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
-          Measured at rest, typically 60–100 bpm
-        </p>
+        {state?.fieldErrors?.restingHr ? (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.fieldErrors.restingHr}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+            Measured at rest, typically 60–100 bpm
+          </p>
+        )}
       </div>
 
       <div>
@@ -54,9 +58,13 @@ export default function LifestyleForm() {
           placeholder="35"
           className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
-        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
-          From fitness test or wearable, typically 25–45 mL/kg/min
-        </p>
+        {state?.fieldErrors?.vo2max ? (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.fieldErrors.vo2max}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+            From fitness test or wearable, typically 25–45 mL/kg/min
+          </p>
+        )}
       </div>
 
       <div>
@@ -76,9 +84,13 @@ export default function LifestyleForm() {
           placeholder="150"
           className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
-        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
-          WHO recommends at least 150 min/week
-        </p>
+        {state?.fieldErrors?.activeMinutes ? (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.fieldErrors.activeMinutes}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+            WHO recommends at least 150 min/week
+          </p>
+        )}
       </div>
 
       <div>
@@ -98,9 +110,13 @@ export default function LifestyleForm() {
           placeholder="7.5"
           className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
-        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
-          Average per night, ideally 7–9 hours
-        </p>
+        {state?.fieldErrors?.sleepHours ? (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.fieldErrors.sleepHours}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+            Average per night, ideally 7–9 hours
+          </p>
+        )}
       </div>
 
       <div>
@@ -120,9 +136,13 @@ export default function LifestyleForm() {
           placeholder="97"
           className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
-        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
-          Blood oxygen, typically 95–100%
-        </p>
+        {state?.fieldErrors?.spo2 ? (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.fieldErrors.spo2}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+            Blood oxygen, typically 95–100%
+          </p>
+        )}
       </div>
 
       <div className="flex gap-3">
