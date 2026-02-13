@@ -116,7 +116,7 @@ export default async function DashboardPage() {
           <span>{baseline.smoker ? "Smoker" : "Non-smoker"}</span>
           <span className="text-slate-300 dark:text-zinc-400 text-xl">&middot;</span>
           <span>{baseline.diabetes ? "Diabetes" : "No diabetes"}</span>
-          <div className="ml-auto flex gap-2">
+          <div className="m-auto lg:ml-auto lg:mr-0 flex gap-2">
             <Link
               href="/dashboard/labs"
               className="rounded-lg border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-950"
