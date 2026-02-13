@@ -11,7 +11,7 @@ generator client {
 
 model Baseline {
   id        String   @id @default(cuid())
-  userId    String // CUID from User DB
+  userId    String   @unique // one baseline per user
   birthdate DateTime
   height    Float
   weight    Float
@@ -23,14 +23,18 @@ model Lifestyle {
   id         String   @id @default(cuid())
   userId     String
   recordedAt DateTime @default(now())
-  data       Json // restingHr, vo2max, active_minutes
+  data       Json // restingHr, vo2max, activeMinutes, sleepHours, spo2
+
+  @@index([userId, recordedAt(sort: Desc)])
 }
 
 model Medical {
   id         String   @id @default(cuid())
   userId     String
   recordedAt DateTime @default(now())
-  data       Json // sbp, ldl, hdl
+  data       Json // sbp, ldl, hdl, glucose, triglycerides
+
+  @@index([userId, recordedAt(sort: Desc)])
 }
 
 model Assessment {
@@ -39,9 +43,11 @@ model Assessment {
   createdAt DateTime @default(now())
 
   lifestyleId String? // the triggering lifestyle input
-  medicalId   String? // the triggering medical input
+  medicalId   String? // the triggering lab results input
 
   miScore     Int
   strokeScore Int
   hfScore     Int
+
+  @@index([userId, createdAt(sort: Desc)])
 }

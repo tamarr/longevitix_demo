@@ -233,7 +233,7 @@ describe("riskExplanation", () => {
     const risk = computeRisk(input);
     const explanation = riskExplanation("mi", risk.mi, input);
     expect(explanation.summary).toContain(`${risk.mi}%`);
-    expect(explanation.summary).toContain("Myocardial Infarction");
+    expect(explanation.summary).toContain("Heart Attack");
   });
 
   it("includes lifestyle factors when provided", () => {
@@ -252,38 +252,16 @@ describe("riskExplanation", () => {
     expect(explanation.factors.length).toBe(6);
   });
 
-  it("includes HRV, sleep, and SpO2 factors when provided", () => {
-    const input = { age: 55, bmi: 28, smoker: false, diabetes: false, hrv: 45, sleepHours: 7.5, spo2: 97 };
+  it("includes sleep and SpO2 factors when provided", () => {
+    const input = { age: 55, bmi: 28, smoker: false, diabetes: false, sleepHours: 7.5, spo2: 97 };
     const risk = computeRisk(input);
     const explanation = riskExplanation("mi", risk.mi, input);
-    // age + bmi + hrv + sleepHours + spo2 = 5 factors
-    expect(explanation.factors.length).toBe(5);
+    // age + bmi + sleepHours + spo2 = 4 factors
+    expect(explanation.factors.length).toBe(4);
   });
 });
 
-describe("HRV / Sleep / SpO2 multipliers", () => {
-  it("reduces scores with high HRV (65)", () => {
-    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
-    const withHrv = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, hrv: 65 });
-    expect(withHrv.hf).toBeLessThan(baseline.hf);
-    expect(withHrv.mi).toBeLessThan(baseline.mi);
-  });
-
-  it("increases scores with low HRV (15)", () => {
-    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
-    const withHrv = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, hrv: 15 });
-    expect(withHrv.hf).toBeGreaterThan(baseline.hf);
-    expect(withHrv.mi).toBeGreaterThan(baseline.mi);
-  });
-
-  it("dampens HRV effect on MI/stroke vs full effect on HF", () => {
-    const withHrv = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false, hrv: 15 });
-    const baselineOnly = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false });
-    const hfIncrease = (withHrv.hf - baselineOnly.hf) / Math.max(baselineOnly.hf, 1);
-    const miIncrease = (withHrv.mi - baselineOnly.mi) / Math.max(baselineOnly.mi, 1);
-    expect(hfIncrease).toBeGreaterThanOrEqual(miIncrease);
-  });
-
+describe("Sleep / SpO2 multipliers", () => {
   it("reduces scores with optimal sleep (7.5h)", () => {
     const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
     const withSleep = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, sleepHours: 7.5 });
@@ -340,7 +318,7 @@ describe("buildRiskInput", () => {
 
   it("correctly extracts fields from medical and lifestyle blobs", () => {
     const medical = { sbp: 130, ldl: 120, hdl: 55, glucose: 100, triglycerides: 160 };
-    const lifestyle = { restingHr: 65, vo2max: 40, activeMinutes: 200, hrv: 50, sleepHours: 7.5, spo2: 97 };
+    const lifestyle = { restingHr: 65, vo2max: 40, activeMinutes: 200, sleepHours: 7.5, spo2: 97 };
     const result = buildRiskInput(baselineData, medical, lifestyle);
 
     expect(result.smoker).toBe(false);
@@ -353,7 +331,6 @@ describe("buildRiskInput", () => {
     expect(result.restingHr).toBe(65);
     expect(result.vo2max).toBe(40);
     expect(result.activeMinutes).toBe(200);
-    expect(result.hrv).toBe(50);
     expect(result.sleepHours).toBe(7.5);
     expect(result.spo2).toBe(97);
   });
@@ -365,7 +342,6 @@ describe("buildRiskInput", () => {
     expect(result.diabetes).toBe(true);
     expect(result.sbp).toBeUndefined();
     expect(result.restingHr).toBeUndefined();
-    expect(result.hrv).toBeUndefined();
   });
 
   it("works with undefined data args", () => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const medicalSchema = z
+const labsSchema = z
   .object({
     sbp: z.union([
       z.literal("").transform(() => undefined),
@@ -45,6 +45,6 @@ const medicalSchema = z
     { message: "Please provide at least one measurement." }
   );
 
-export function validateMedical(data: Record<string, unknown>) {
-  return medicalSchema.safeParse(data);
+export function validateLabs(data: Record<string, unknown>) {
+  return labsSchema.safeParse(data);
 }

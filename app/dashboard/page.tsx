@@ -6,7 +6,10 @@ import { healthPrisma } from "@/lib/prisma";
 import { riskExplanation, buildRiskInput } from "@/lib/risk";
 import RiskCard from "./risk-card";
 import RiskChart, { type AssessmentPoint } from "./risk-chart";
+import DataSourceDialog from "./data-source-dialog";
 import SignOutButton from "./sign-out-button";
+
+const MAX_ASSESSMENTS = 50;
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -19,18 +22,20 @@ export default async function DashboardPage() {
 
   if (!baseline) redirect("/onboarding");
 
-  // Fetch all assessments for the chart, ordered oldest → newest
+  // Fetch the most recent assessments (newest first), then reverse for chart
   const assessments = await healthPrisma.assessment.findMany({
     where: { userId },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
+    take: MAX_ASSESSMENTS,
   });
 
   if (assessments.length === 0) redirect("/onboarding");
 
+  assessments.reverse();
   const assessment = assessments[assessments.length - 1];
 
-  // Fetch latest medical record if any
-  const medical = await healthPrisma.medical.findFirst({
+  // Fetch latest lab results if any
+  const labs = await healthPrisma.medical.findFirst({
     where: { userId },
     orderBy: { recordedAt: "desc" },
   });
@@ -41,10 +46,10 @@ export default async function DashboardPage() {
     orderBy: { recordedAt: "desc" },
   });
 
-  // Build risk input with medical and lifestyle data if available
-  const medicalData = medical?.data as Record<string, number> | null;
+  // Build risk input with lab and lifestyle data if available
+  const labsData = labs?.data as Record<string, number> | null;
   const lifestyleData = lifestyle?.data as Record<string, number> | null;
-  const riskInput = buildRiskInput(baseline, medicalData, lifestyleData);
+  const riskInput = buildRiskInput(baseline, labsData, lifestyleData);
   const { age, bmi } = riskInput;
 
   const miExplanation = riskExplanation("mi", assessment.miScore, riskInput);
@@ -55,7 +60,13 @@ export default async function DashboardPage() {
   );
   const hfExplanation = riskExplanation("hf", assessment.hfScore, riskInput);
 
-  // Build chart data — include time when multiple assessments share a date
+  // Format dates for the data source dialog
+  const formatDate = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const labsDate = labs ? formatDate(labs.recordedAt) : null;
+  const lifestyleDate = lifestyle ? formatDate(lifestyle.recordedAt) : null;
+
+  // Build chart data
   const chartData: AssessmentPoint[] = assessments.map((a) => {
     const d = new Date(a.createdAt);
     const base = d.toLocaleDateString("en-US", {
@@ -109,10 +120,10 @@ export default async function DashboardPage() {
           <span>{baseline.diabetes ? "Diabetes" : "No diabetes"}</span>
           <div className="ml-auto flex gap-2">
             <Link
-              href="/dashboard/medical"
+              href="/dashboard/labs"
               className="rounded-lg border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-950"
             >
-              Add Medical Data
+              Add Lab Results
             </Link>
             <Link
               href="/dashboard/lifestyle"
@@ -137,12 +148,20 @@ export default async function DashboardPage() {
 
         {/* Latest Assessment risk cards */}
         <section>
-          <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-zinc-50">
-            Latest Assessment
-          </h2>
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-50">
+              10-Year Risk Prediction
+            </h2>
+            <DataSourceDialog
+              labsData={labsData}
+              lifestyleData={lifestyleData}
+              labsDate={labsDate}
+              lifestyleDate={lifestyleDate}
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <RiskCard
-              title="Myocardial Infarction"
+              title="Heart Attack"
               score={assessment.miScore}
               explanation={miExplanation}
               accent="blue"
@@ -161,6 +180,17 @@ export default async function DashboardPage() {
             />
           </div>
         </section>
+
+        {/* Disclaimer */}
+        <footer className="mt-10 border-t border-teal-100 pt-6 dark:border-zinc-800">
+          <p className="text-center text-xs text-slate-400 dark:text-zinc-600">
+            This tool is for educational and demonstration purposes only. It does
+            not provide medical advice, diagnosis, or treatment recommendations.
+            Risk estimates are simplified approximations and should not be used
+            for clinical decision-making. Always consult a qualified healthcare
+            professional for medical decisions.
+          </p>
+        </footer>
       </main>
     </div>
   );

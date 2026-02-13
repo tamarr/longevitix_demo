@@ -5436,16 +5436,16 @@ export namespace Prisma {
 
   export type BaselineWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    userId?: string
     AND?: BaselineWhereInput | BaselineWhereInput[]
     OR?: BaselineWhereInput[]
     NOT?: BaselineWhereInput | BaselineWhereInput[]
-    userId?: StringFilter<"Baseline"> | string
     birthdate?: DateTimeFilter<"Baseline"> | Date | string
     height?: FloatFilter<"Baseline"> | number
     weight?: FloatFilter<"Baseline"> | number
     smoker?: BoolFilter<"Baseline"> | boolean
     diabetes?: BoolFilter<"Baseline"> | boolean
-  }, "id">
+  }, "id" | "userId">
 
   export type BaselineOrderByWithAggregationInput = {
     id?: SortOrder

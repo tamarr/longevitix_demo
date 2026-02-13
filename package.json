@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "vitest run && next build",
     "postinstall": "prisma generate --config=prisma/user.config.ts && prisma generate --config=prisma/health.config.ts",
     "start": "prisma db push --config=prisma/user.config.ts && prisma db push --config=prisma/health.config.ts && next start",
     "lint": "eslint",

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { submitLifestyle } from "./actions";
 
@@ -82,28 +83,6 @@ export default function LifestyleForm() {
 
       <div>
         <label
-          htmlFor="hrv"
-          className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300"
-        >
-          Heart Rate Variability (HRV)
-        </label>
-        <input
-          type="number"
-          id="hrv"
-          name="hrv"
-          min="5"
-          max="200"
-          step="1"
-          placeholder="45"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-        />
-        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
-          Higher is better, typically 20–70 ms
-        </p>
-      </div>
-
-      <div>
-        <label
           htmlFor="sleepHours"
           className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300"
         >
@@ -146,13 +125,21 @@ export default function LifestyleForm() {
         </p>
       </div>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-50"
-      >
-        {isPending ? "Calculating..." : "Update Risk Assessment"}
-      </button>
+      <div className="flex gap-3">
+        <Link
+          href="/dashboard"
+          className="flex-1 rounded-lg border border-zinc-300 px-4 py-2.5 text-center text-sm font-medium text-slate-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          Back
+        </Link>
+        <button
+          type="submit"
+          disabled={isPending}
+          className="flex-1 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-50"
+        >
+          {isPending ? "Calculating..." : "Update Risk Assessment"}
+        </button>
+      </div>
     </form>
   );
 }
