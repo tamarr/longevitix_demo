@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeRisk, riskLevel, riskExplanation } from "../risk";
+import { computeRisk, riskLevel, riskExplanation, buildRiskInput } from "../risk";
 import { riskColor } from "../ui";
 
 describe("computeRisk", () => {
@@ -250,5 +250,148 @@ describe("riskExplanation", () => {
     const explanation = riskExplanation("mi", risk.mi, input);
     // age + bmi + sbp + restingHr + vo2max + activeMinutes = 6 factors
     expect(explanation.factors.length).toBe(6);
+  });
+
+  it("includes HRV, sleep, and SpO2 factors when provided", () => {
+    const input = { age: 55, bmi: 28, smoker: false, diabetes: false, hrv: 45, sleepHours: 7.5, spo2: 97 };
+    const risk = computeRisk(input);
+    const explanation = riskExplanation("mi", risk.mi, input);
+    // age + bmi + hrv + sleepHours + spo2 = 5 factors
+    expect(explanation.factors.length).toBe(5);
+  });
+});
+
+describe("HRV / Sleep / SpO2 multipliers", () => {
+  it("reduces scores with high HRV (65)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withHrv = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, hrv: 65 });
+    expect(withHrv.hf).toBeLessThan(baseline.hf);
+    expect(withHrv.mi).toBeLessThan(baseline.mi);
+  });
+
+  it("increases scores with low HRV (15)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withHrv = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, hrv: 15 });
+    expect(withHrv.hf).toBeGreaterThan(baseline.hf);
+    expect(withHrv.mi).toBeGreaterThan(baseline.mi);
+  });
+
+  it("dampens HRV effect on MI/stroke vs full effect on HF", () => {
+    const withHrv = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false, hrv: 15 });
+    const baselineOnly = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false });
+    const hfIncrease = (withHrv.hf - baselineOnly.hf) / Math.max(baselineOnly.hf, 1);
+    const miIncrease = (withHrv.mi - baselineOnly.mi) / Math.max(baselineOnly.mi, 1);
+    expect(hfIncrease).toBeGreaterThanOrEqual(miIncrease);
+  });
+
+  it("reduces scores with optimal sleep (7.5h)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withSleep = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, sleepHours: 7.5 });
+    expect(withSleep.mi).toBeLessThan(baseline.mi);
+    expect(withSleep.stroke).toBeLessThan(baseline.stroke);
+    expect(withSleep.hf).toBeLessThan(baseline.hf);
+  });
+
+  it("increases scores with poor sleep (4h)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withSleep = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, sleepHours: 4 });
+    expect(withSleep.mi).toBeGreaterThan(baseline.mi);
+    expect(withSleep.stroke).toBeGreaterThan(baseline.stroke);
+    expect(withSleep.hf).toBeGreaterThan(baseline.hf);
+  });
+
+  it("increases scores with excessive sleep (10h)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withSleep = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, sleepHours: 10 });
+    expect(withSleep.mi).toBeGreaterThan(baseline.mi);
+  });
+
+  it("does not change scores with normal SpO2 (97)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withSpo2 = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, spo2: 97 });
+    expect(withSpo2.mi).toBe(baseline.mi);
+    expect(withSpo2.hf).toBe(baseline.hf);
+  });
+
+  it("increases scores with low SpO2 (88)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withSpo2 = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, spo2: 88 });
+    expect(withSpo2.hf).toBeGreaterThan(baseline.hf);
+    expect(withSpo2.mi).toBeGreaterThan(baseline.mi);
+  });
+
+  it("dampens SpO2 effect on MI/stroke vs full effect on HF", () => {
+    const withSpo2 = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false, spo2: 88 });
+    const baselineOnly = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false });
+    const hfIncrease = (withSpo2.hf - baselineOnly.hf) / Math.max(baselineOnly.hf, 1);
+    const miIncrease = (withSpo2.mi - baselineOnly.mi) / Math.max(baselineOnly.mi, 1);
+    expect(hfIncrease).toBeGreaterThanOrEqual(miIncrease);
+  });
+});
+
+describe("buildRiskInput", () => {
+  const baselineData = {
+    birthdate: new Date("1970-01-01"),
+    height: 175,
+    weight: 80,
+    smoker: false,
+    diabetes: true,
+  };
+
+  it("correctly extracts fields from medical and lifestyle blobs", () => {
+    const medical = { sbp: 130, ldl: 120, hdl: 55, glucose: 100, triglycerides: 160 };
+    const lifestyle = { restingHr: 65, vo2max: 40, activeMinutes: 200, hrv: 50, sleepHours: 7.5, spo2: 97 };
+    const result = buildRiskInput(baselineData, medical, lifestyle);
+
+    expect(result.smoker).toBe(false);
+    expect(result.diabetes).toBe(true);
+    expect(result.sbp).toBe(130);
+    expect(result.ldl).toBe(120);
+    expect(result.hdl).toBe(55);
+    expect(result.glucose).toBe(100);
+    expect(result.triglycerides).toBe(160);
+    expect(result.restingHr).toBe(65);
+    expect(result.vo2max).toBe(40);
+    expect(result.activeMinutes).toBe(200);
+    expect(result.hrv).toBe(50);
+    expect(result.sleepHours).toBe(7.5);
+    expect(result.spo2).toBe(97);
+  });
+
+  it("returns baseline-only input with null/missing data", () => {
+    const result = buildRiskInput(baselineData, null, null);
+
+    expect(result.smoker).toBe(false);
+    expect(result.diabetes).toBe(true);
+    expect(result.sbp).toBeUndefined();
+    expect(result.restingHr).toBeUndefined();
+    expect(result.hrv).toBeUndefined();
+  });
+
+  it("works with undefined data args", () => {
+    const result = buildRiskInput(baselineData);
+
+    expect(result.sbp).toBeUndefined();
+    expect(result.restingHr).toBeUndefined();
+  });
+
+  it("ignores unknown fields in blobs", () => {
+    const medical = { sbp: 130, unknownField: 999 };
+    const lifestyle = { restingHr: 65, anotherUnknown: 42 };
+    const result = buildRiskInput(baselineData, medical, lifestyle);
+
+    expect(result.sbp).toBe(130);
+    expect(result.restingHr).toBe(65);
+    expect((result as Record<string, unknown>)["unknownField"]).toBeUndefined();
+    expect((result as Record<string, unknown>)["anotherUnknown"]).toBeUndefined();
+  });
+
+  it("handles partial medical data", () => {
+    const medical = { sbp: 130 };
+    const result = buildRiskInput(baselineData, medical, null);
+
+    expect(result.sbp).toBe(130);
+    expect(result.ldl).toBeUndefined();
+    expect(result.hdl).toBeUndefined();
   });
 });

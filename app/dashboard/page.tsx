@@ -3,8 +3,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { healthPrisma } from "@/lib/prisma";
-import { riskExplanation, type RiskInput } from "@/lib/risk";
-import { calculateAge, calculateBmi } from "@/lib/health";
+import { riskExplanation, buildRiskInput } from "@/lib/risk";
 import RiskCard from "./risk-card";
 import RiskChart, { type AssessmentPoint } from "./risk-chart";
 import SignOutButton from "./sign-out-button";
@@ -42,28 +41,11 @@ export default async function DashboardPage() {
     orderBy: { recordedAt: "desc" },
   });
 
-  const age = calculateAge(baseline.birthdate);
-  const bmi = calculateBmi(baseline.weight, baseline.height);
-
   // Build risk input with medical and lifestyle data if available
   const medicalData = medical?.data as Record<string, number> | null;
   const lifestyleData = lifestyle?.data as Record<string, number> | null;
-  const riskInput: RiskInput = {
-    age,
-    bmi,
-    smoker: baseline.smoker,
-    diabetes: baseline.diabetes,
-    ...(medicalData?.sbp !== undefined && { sbp: medicalData.sbp }),
-    ...(medicalData?.ldl !== undefined && { ldl: medicalData.ldl }),
-    ...(medicalData?.hdl !== undefined && { hdl: medicalData.hdl }),
-    ...(medicalData?.glucose !== undefined && { glucose: medicalData.glucose }),
-    ...(medicalData?.triglycerides !== undefined && {
-      triglycerides: medicalData.triglycerides,
-    }),
-    ...(lifestyleData?.restingHr !== undefined && { restingHr: lifestyleData.restingHr }),
-    ...(lifestyleData?.vo2max !== undefined && { vo2max: lifestyleData.vo2max }),
-    ...(lifestyleData?.activeMinutes !== undefined && { activeMinutes: lifestyleData.activeMinutes }),
-  };
+  const riskInput = buildRiskInput(baseline, medicalData, lifestyleData);
+  const { age, bmi } = riskInput;
 
   const miExplanation = riskExplanation("mi", assessment.miScore, riskInput);
   const strokeExplanation = riskExplanation(

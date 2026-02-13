@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { withAuth } from "@/lib/auth";
 import { healthPrisma } from "@/lib/prisma";
-import { computeRisk } from "@/lib/risk";
-import { calculateAge, calculateBmi } from "@/lib/health";
+import { computeRisk, buildRiskInput } from "@/lib/risk";
 import { validateMedical } from "./validation";
 
 export const submitMedical = withAuth(async (userId, formData) => {
@@ -30,9 +29,6 @@ export const submitMedical = withAuth(async (userId, formData) => {
 
   if (!baseline) return "No baseline data found. Please complete onboarding first.";
 
-  const age = calculateAge(baseline.birthdate);
-  const bmi = calculateBmi(baseline.weight, baseline.height);
-
   // Cross-reference: fetch latest lifestyle data
   const latestLifestyle = await healthPrisma.lifestyle.findFirst({
     where: { userId },
@@ -40,33 +36,19 @@ export const submitMedical = withAuth(async (userId, formData) => {
   });
   const lifestyleData = latestLifestyle?.data as Record<string, number> | null;
 
-  const risk = computeRisk({
-    age,
-    bmi,
-    smoker: baseline.smoker,
-    diabetes: baseline.diabetes,
-    sbp,
-    ldl,
-    hdl,
-    glucose,
-    triglycerides,
-    ...(lifestyleData?.restingHr !== undefined && { restingHr: lifestyleData.restingHr }),
-    ...(lifestyleData?.vo2max !== undefined && { vo2max: lifestyleData.vo2max }),
-    ...(lifestyleData?.activeMinutes !== undefined && { activeMinutes: lifestyleData.activeMinutes }),
-  });
+  const newMedicalData: Record<string, number> = {};
+  if (sbp !== undefined) newMedicalData.sbp = sbp;
+  if (ldl !== undefined) newMedicalData.ldl = ldl;
+  if (hdl !== undefined) newMedicalData.hdl = hdl;
+  if (glucose !== undefined) newMedicalData.glucose = glucose;
+  if (triglycerides !== undefined) newMedicalData.triglycerides = triglycerides;
 
-  // Store medical record with only provided fields
-  const medicalData: Record<string, number> = {};
-  if (sbp !== undefined) medicalData.sbp = sbp;
-  if (ldl !== undefined) medicalData.ldl = ldl;
-  if (hdl !== undefined) medicalData.hdl = hdl;
-  if (glucose !== undefined) medicalData.glucose = glucose;
-  if (triglycerides !== undefined) medicalData.triglycerides = triglycerides;
+  const risk = computeRisk(buildRiskInput(baseline, newMedicalData, lifestyleData));
 
   const medical = await healthPrisma.medical.create({
     data: {
       userId,
-      data: medicalData,
+      data: newMedicalData,
     },
   });
 

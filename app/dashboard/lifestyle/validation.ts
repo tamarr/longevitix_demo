@@ -23,11 +23,33 @@ const lifestyleSchema = z
         .min(0, "Active minutes must be between 0–2520 per week.")
         .max(2520, "Active minutes must be between 0–2520 per week."),
     ]).optional(),
+    hrv: z.union([
+      z.literal("").transform(() => undefined),
+      z.coerce
+        .number({ message: "HRV must be a number." })
+        .min(5, "HRV must be between 5–200 ms.")
+        .max(200, "HRV must be between 5–200 ms."),
+    ]).optional(),
+    sleepHours: z.union([
+      z.literal("").transform(() => undefined),
+      z.coerce
+        .number({ message: "Sleep hours must be a number." })
+        .min(1, "Sleep hours must be between 1–16.")
+        .max(16, "Sleep hours must be between 1–16."),
+    ]).optional(),
+    spo2: z.union([
+      z.literal("").transform(() => undefined),
+      z.coerce
+        .number({ message: "SpO2 must be a number." })
+        .min(70, "SpO2 must be between 70–100%.")
+        .max(100, "SpO2 must be between 70–100%."),
+    ]).optional(),
   })
   .refine(
     (data) =>
       data.restingHr !== undefined || data.vo2max !== undefined ||
-      data.activeMinutes !== undefined,
+      data.activeMinutes !== undefined || data.hrv !== undefined ||
+      data.sleepHours !== undefined || data.spo2 !== undefined,
     { message: "Please provide at least one measurement." }
   );
 

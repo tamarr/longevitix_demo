@@ -80,6 +80,72 @@ export default function LifestyleForm() {
         </p>
       </div>
 
+      <div>
+        <label
+          htmlFor="hrv"
+          className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300"
+        >
+          Heart Rate Variability (HRV)
+        </label>
+        <input
+          type="number"
+          id="hrv"
+          name="hrv"
+          min="5"
+          max="200"
+          step="1"
+          placeholder="45"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        />
+        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+          Higher is better, typically 20–70 ms
+        </p>
+      </div>
+
+      <div>
+        <label
+          htmlFor="sleepHours"
+          className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300"
+        >
+          Sleep Hours
+        </label>
+        <input
+          type="number"
+          id="sleepHours"
+          name="sleepHours"
+          min="1"
+          max="16"
+          step="0.5"
+          placeholder="7.5"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        />
+        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+          Average per night, ideally 7–9 hours
+        </p>
+      </div>
+
+      <div>
+        <label
+          htmlFor="spo2"
+          className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300"
+        >
+          SpO2
+        </label>
+        <input
+          type="number"
+          id="spo2"
+          name="spo2"
+          min="70"
+          max="100"
+          step="1"
+          placeholder="97"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        />
+        <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+          Blood oxygen, typically 95–100%
+        </p>
+      </div>
+
       <button
         type="submit"
         disabled={isPending}

@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { withAuth } from "@/lib/auth";
 import { healthPrisma } from "@/lib/prisma";
-import { computeRisk } from "@/lib/risk";
-import { calculateAge, calculateBmi } from "@/lib/health";
+import { computeRisk, buildRiskInput } from "@/lib/risk";
 import { validateLifestyle } from "./validation";
 
 export const submitLifestyle = withAuth(async (userId, formData) => {
@@ -12,6 +11,9 @@ export const submitLifestyle = withAuth(async (userId, formData) => {
     restingHr: formData.get("restingHr") as string,
     vo2max: formData.get("vo2max") as string,
     activeMinutes: formData.get("activeMinutes") as string,
+    hrv: formData.get("hrv") as string,
+    sleepHours: formData.get("sleepHours") as string,
+    spo2: formData.get("spo2") as string,
   };
 
   const result = validateLifestyle(raw);
@@ -19,7 +21,7 @@ export const submitLifestyle = withAuth(async (userId, formData) => {
     return result.error.issues[0].message;
   }
 
-  const { restingHr, vo2max, activeMinutes } = result.data;
+  const { restingHr, vo2max, activeMinutes, hrv, sleepHours, spo2 } = result.data;
 
   // Fetch user's baseline for age/bmi/smoker/diabetes
   const baseline = await healthPrisma.baseline.findFirst({
@@ -28,9 +30,6 @@ export const submitLifestyle = withAuth(async (userId, formData) => {
 
   if (!baseline) return "No baseline data found. Please complete onboarding first.";
 
-  const age = calculateAge(baseline.birthdate);
-  const bmi = calculateBmi(baseline.weight, baseline.height);
-
   // Cross-reference: fetch latest medical data
   const latestMedical = await healthPrisma.medical.findFirst({
     where: { userId },
@@ -38,31 +37,20 @@ export const submitLifestyle = withAuth(async (userId, formData) => {
   });
   const medicalData = latestMedical?.data as Record<string, number> | null;
 
-  const risk = computeRisk({
-    age,
-    bmi,
-    smoker: baseline.smoker,
-    diabetes: baseline.diabetes,
-    ...(medicalData?.sbp !== undefined && { sbp: medicalData.sbp }),
-    ...(medicalData?.ldl !== undefined && { ldl: medicalData.ldl }),
-    ...(medicalData?.hdl !== undefined && { hdl: medicalData.hdl }),
-    ...(medicalData?.glucose !== undefined && { glucose: medicalData.glucose }),
-    ...(medicalData?.triglycerides !== undefined && { triglycerides: medicalData.triglycerides }),
-    restingHr,
-    vo2max,
-    activeMinutes,
-  });
+  const newLifestyleData: Record<string, number> = {};
+  if (restingHr !== undefined) newLifestyleData.restingHr = restingHr;
+  if (vo2max !== undefined) newLifestyleData.vo2max = vo2max;
+  if (activeMinutes !== undefined) newLifestyleData.activeMinutes = activeMinutes;
+  if (hrv !== undefined) newLifestyleData.hrv = hrv;
+  if (sleepHours !== undefined) newLifestyleData.sleepHours = sleepHours;
+  if (spo2 !== undefined) newLifestyleData.spo2 = spo2;
 
-  // Store lifestyle record with only provided fields
-  const lifestyleData: Record<string, number> = {};
-  if (restingHr !== undefined) lifestyleData.restingHr = restingHr;
-  if (vo2max !== undefined) lifestyleData.vo2max = vo2max;
-  if (activeMinutes !== undefined) lifestyleData.activeMinutes = activeMinutes;
+  const risk = computeRisk(buildRiskInput(baseline, medicalData, newLifestyleData));
 
   const lifestyle = await healthPrisma.lifestyle.create({
     data: {
       userId,
-      data: lifestyleData,
+      data: newLifestyleData,
     },
   });
 

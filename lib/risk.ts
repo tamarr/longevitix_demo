@@ -11,6 +11,9 @@ export interface RiskInput {
   restingHr?: number;     // resting heart rate (bpm)
   vo2max?: number;        // VO2 max (mL/kg/min)
   activeMinutes?: number; // active minutes per week
+  hrv?: number;           // heart rate variability (ms)
+  sleepHours?: number;    // average sleep per night (hours)
+  spo2?: number;          // blood oxygen saturation (%)
 }
 
 interface RiskResult {
@@ -94,6 +97,28 @@ function activeMinutesMultiplier(mins: number): number {
   return 1.2;
 }
 
+function hrvMultiplier(hrv: number): number {
+  if (hrv > 60) return 0.85;
+  if (hrv >= 40) return 1.0;
+  if (hrv >= 20) return 1.15;
+  return 1.3;
+}
+
+function sleepMultiplier(hours: number): number {
+  if (hours >= 7 && hours <= 9) return 0.9;
+  if (hours > 9) return 1.2;
+  if (hours >= 6) return 1.0;
+  if (hours >= 5) return 1.15;
+  return 1.2;
+}
+
+function spo2Multiplier(spo2: number): number {
+  if (spo2 >= 96) return 1.0;
+  if (spo2 >= 93) return 1.1;
+  if (spo2 >= 90) return 1.2;
+  return 1.35;
+}
+
 /** Lerp a multiplier toward 1.0 by the given factor (0 = no effect, 1 = full effect) */
 function dampen(multiplier: number, strength: number): number {
   return 1.0 + (multiplier - 1.0) * strength;
@@ -148,6 +173,17 @@ export function computeRisk(input: RiskInput): RiskResult {
     }
     if (input.activeMinutes !== undefined) {
       score *= activeMinutesMultiplier(input.activeMinutes);
+    }
+    if (input.hrv !== undefined) {
+      const mul = hrvMultiplier(input.hrv);
+      score *= key === "hf" ? mul : dampen(mul, 0.7);
+    }
+    if (input.sleepHours !== undefined) {
+      score *= sleepMultiplier(input.sleepHours);
+    }
+    if (input.spo2 !== undefined) {
+      const mul = spo2Multiplier(input.spo2);
+      score *= key === "hf" ? mul : dampen(mul, 0.6);
     }
 
     result[key] = clamp(Math.round(score), 0, 100);
@@ -294,6 +330,37 @@ export function riskExplanation(
     }
   }
 
+  if (input.hrv !== undefined) {
+    const mul = hrvMultiplier(input.hrv);
+    if (mul < 1.0) {
+      factors.push(`HRV ${input.hrv} ms is protective (-${Math.round((1 - mul) * 100)}%)`);
+    } else if (mul > 1.0) {
+      factors.push(`HRV ${input.hrv} ms adds +${Math.round((mul - 1) * 100)}% risk`);
+    } else {
+      factors.push(`HRV ${input.hrv} ms is in the normal range`);
+    }
+  }
+
+  if (input.sleepHours !== undefined) {
+    const mul = sleepMultiplier(input.sleepHours);
+    if (mul < 1.0) {
+      factors.push(`Sleep ${input.sleepHours} hours/night is protective (-${Math.round((1 - mul) * 100)}%)`);
+    } else if (mul > 1.0) {
+      factors.push(`Sleep ${input.sleepHours} hours/night adds +${Math.round((mul - 1) * 100)}% risk`);
+    } else {
+      factors.push(`Sleep ${input.sleepHours} hours/night is in the normal range`);
+    }
+  }
+
+  if (input.spo2 !== undefined) {
+    const mul = spo2Multiplier(input.spo2);
+    if (mul > 1.0) {
+      factors.push(`SpO2 ${input.spo2}% adds +${Math.round((mul - 1) * 100)}% risk`);
+    } else {
+      factors.push(`SpO2 ${input.spo2}% is in the normal range`);
+    }
+  }
+
   // Meaning
   const approxOdds = Math.round(100 / Math.max(score, 1));
   const meaning =
@@ -318,5 +385,44 @@ export function riskExplanation(
     factors,
     meaning,
     advice,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// buildRiskInput — single source of truth for constructing RiskInput from
+// baseline profile + opaque medical/lifestyle JSON blobs.
+// ---------------------------------------------------------------------------
+
+import { calculateAge, calculateBmi } from "./health";
+
+const MEDICAL_KEYS = ["sbp", "ldl", "hdl", "glucose", "triglycerides"] as const;
+const LIFESTYLE_KEYS = ["restingHr", "vo2max", "activeMinutes", "hrv", "sleepHours", "spo2"] as const;
+
+function pickDefined<K extends string>(
+  keys: readonly K[],
+  record: Record<string, number> | null | undefined,
+): Partial<Record<K, number>> {
+  const out: Partial<Record<K, number>> = {};
+  if (!record) return out;
+  for (const k of keys) {
+    if (record[k] !== undefined) {
+      out[k] = record[k];
+    }
+  }
+  return out;
+}
+
+export function buildRiskInput(
+  baseline: { birthdate: Date; height: number; weight: number; smoker: boolean; diabetes: boolean },
+  medicalData?: Record<string, number> | null,
+  lifestyleData?: Record<string, number> | null,
+): RiskInput {
+  return {
+    age: calculateAge(baseline.birthdate),
+    bmi: calculateBmi(baseline.weight, baseline.height),
+    smoker: baseline.smoker,
+    diabetes: baseline.diabetes,
+    ...pickDefined(MEDICAL_KEYS, medicalData),
+    ...pickDefined(LIFESTYLE_KEYS, lifestyleData),
   };
 }
