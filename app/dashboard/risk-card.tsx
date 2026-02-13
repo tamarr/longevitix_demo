@@ -21,10 +21,13 @@ export default function RiskCard({ title, score, explanation, accent }: RiskCard
   const [expanded, setExpanded] = useState(false);
   const level = riskLevel(score);
   const color = riskColor(score);
-  const borderColor = accentMap[accent];
+  const { border, shadow } = accentMap[accent];
 
   return (
-    <div className={`rounded-xl border border-teal-100 border-l-4 ${borderColor} bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950`}>
+    <div
+      className={`rounded-xl border ${border} border-l-4 bg-white p-5 dark:bg-zinc-950`}
+      style={{ boxShadow: shadow }}
+    >
       <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
         {title}
       </p>

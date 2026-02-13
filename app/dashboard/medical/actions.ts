@@ -33,6 +33,13 @@ export const submitMedical = withAuth(async (userId, formData) => {
   const age = calculateAge(baseline.birthdate);
   const bmi = calculateBmi(baseline.weight, baseline.height);
 
+  // Cross-reference: fetch latest lifestyle data
+  const latestLifestyle = await healthPrisma.lifestyle.findFirst({
+    where: { userId },
+    orderBy: { recordedAt: "desc" },
+  });
+  const lifestyleData = latestLifestyle?.data as Record<string, number> | null;
+
   const risk = computeRisk({
     age,
     bmi,
@@ -43,6 +50,9 @@ export const submitMedical = withAuth(async (userId, formData) => {
     hdl,
     glucose,
     triglycerides,
+    ...(lifestyleData?.restingHr !== undefined && { restingHr: lifestyleData.restingHr }),
+    ...(lifestyleData?.vo2max !== undefined && { vo2max: lifestyleData.vo2max }),
+    ...(lifestyleData?.activeMinutes !== undefined && { activeMinutes: lifestyleData.activeMinutes }),
   });
 
   // Store medical record with only provided fields

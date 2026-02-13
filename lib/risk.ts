@@ -8,6 +8,9 @@ export interface RiskInput {
   hdl?: number;   // HDL cholesterol (mg/dL)
   glucose?: number;      // fasting blood glucose (mg/dL)
   triglycerides?: number; // triglycerides (mg/dL)
+  restingHr?: number;     // resting heart rate (bpm)
+  vo2max?: number;        // VO2 max (mL/kg/min)
+  activeMinutes?: number; // active minutes per week
 }
 
 interface RiskResult {
@@ -70,6 +73,27 @@ function triglyceridesMultiplier(tg: number): number {
   return 1.5;
 }
 
+function restingHrMultiplier(hr: number): number {
+  if (hr < 60) return 0.85;
+  if (hr < 80) return 1.0;
+  if (hr < 100) return 1.15;
+  return 1.3;
+}
+
+function vo2maxMultiplier(vo2: number): number {
+  if (vo2 > 45) return 0.75;
+  if (vo2 >= 35) return 0.9;
+  if (vo2 >= 25) return 1.0;
+  return 1.2;
+}
+
+function activeMinutesMultiplier(mins: number): number {
+  if (mins >= 300) return 0.8;
+  if (mins >= 150) return 0.9;
+  if (mins >= 75) return 1.0;
+  return 1.2;
+}
+
 /** Lerp a multiplier toward 1.0 by the given factor (0 = no effect, 1 = full effect) */
 function dampen(multiplier: number, strength: number): number {
   return 1.0 + (multiplier - 1.0) * strength;
@@ -112,6 +136,18 @@ export function computeRisk(input: RiskInput): RiskResult {
     if (input.triglycerides !== undefined) {
       const mul = triglyceridesMultiplier(input.triglycerides);
       score *= key === "mi" ? mul : dampen(mul, 0.5);
+    }
+
+    // Lifestyle multipliers — applied only when data is provided
+    if (input.restingHr !== undefined) {
+      const mul = restingHrMultiplier(input.restingHr);
+      score *= key === "hf" ? mul : dampen(mul, 0.7);
+    }
+    if (input.vo2max !== undefined) {
+      score *= vo2maxMultiplier(input.vo2max);
+    }
+    if (input.activeMinutes !== undefined) {
+      score *= activeMinutesMultiplier(input.activeMinutes);
     }
 
     result[key] = clamp(Math.round(score), 0, 100);
@@ -221,6 +257,40 @@ export function riskExplanation(
       factors.push(`Triglycerides ${input.triglycerides} mg/dL adds +${Math.round((mul - 1) * 100)}% risk`);
     } else {
       factors.push(`Triglycerides ${input.triglycerides} mg/dL is in the normal range`);
+    }
+  }
+
+  // Lifestyle factors — only if provided
+  if (input.restingHr !== undefined) {
+    const mul = restingHrMultiplier(input.restingHr);
+    if (mul < 1.0) {
+      factors.push(`Resting heart rate ${input.restingHr} bpm is protective (-${Math.round((1 - mul) * 100)}%)`);
+    } else if (mul > 1.0) {
+      factors.push(`Resting heart rate ${input.restingHr} bpm adds +${Math.round((mul - 1) * 100)}% risk`);
+    } else {
+      factors.push(`Resting heart rate ${input.restingHr} bpm is in the normal range`);
+    }
+  }
+
+  if (input.vo2max !== undefined) {
+    const mul = vo2maxMultiplier(input.vo2max);
+    if (mul < 1.0) {
+      factors.push(`VO2 max ${input.vo2max} mL/kg/min is protective (-${Math.round((1 - mul) * 100)}%)`);
+    } else if (mul > 1.0) {
+      factors.push(`VO2 max ${input.vo2max} mL/kg/min adds +${Math.round((mul - 1) * 100)}% risk`);
+    } else {
+      factors.push(`VO2 max ${input.vo2max} mL/kg/min is in the normal range`);
+    }
+  }
+
+  if (input.activeMinutes !== undefined) {
+    const mul = activeMinutesMultiplier(input.activeMinutes);
+    if (mul < 1.0) {
+      factors.push(`Active minutes ${input.activeMinutes}/week is protective (-${Math.round((1 - mul) * 100)}%)`);
+    } else if (mul > 1.0) {
+      factors.push(`Active minutes ${input.activeMinutes}/week adds +${Math.round((mul - 1) * 100)}% risk`);
+    } else {
+      factors.push(`Active minutes ${input.activeMinutes}/week is in the normal range`);
     }
   }
 

@@ -36,11 +36,18 @@ export default async function DashboardPage() {
     orderBy: { recordedAt: "desc" },
   });
 
+  // Fetch latest lifestyle record if any
+  const lifestyle = await healthPrisma.lifestyle.findFirst({
+    where: { userId },
+    orderBy: { recordedAt: "desc" },
+  });
+
   const age = calculateAge(baseline.birthdate);
   const bmi = calculateBmi(baseline.weight, baseline.height);
 
-  // Build risk input with medical data if available
+  // Build risk input with medical and lifestyle data if available
   const medicalData = medical?.data as Record<string, number> | null;
+  const lifestyleData = lifestyle?.data as Record<string, number> | null;
   const riskInput: RiskInput = {
     age,
     bmi,
@@ -53,6 +60,9 @@ export default async function DashboardPage() {
     ...(medicalData?.triglycerides !== undefined && {
       triglycerides: medicalData.triglycerides,
     }),
+    ...(lifestyleData?.restingHr !== undefined && { restingHr: lifestyleData.restingHr }),
+    ...(lifestyleData?.vo2max !== undefined && { vo2max: lifestyleData.vo2max }),
+    ...(lifestyleData?.activeMinutes !== undefined && { activeMinutes: lifestyleData.activeMinutes }),
   };
 
   const miExplanation = riskExplanation("mi", assessment.miScore, riskInput);
@@ -115,12 +125,20 @@ export default async function DashboardPage() {
           <span>{baseline.smoker ? "Smoker" : "Non-smoker"}</span>
           <span className="text-slate-300 dark:text-zinc-600">&middot;</span>
           <span>{baseline.diabetes ? "Diabetes" : "No diabetes"}</span>
-          <Link
-            href="/dashboard/medical"
-            className="ml-auto rounded-lg border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-950"
-          >
-            Add Medical Data
-          </Link>
+          <div className="ml-auto flex gap-2">
+            <Link
+              href="/dashboard/medical"
+              className="rounded-lg border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-950"
+            >
+              Add Medical Data
+            </Link>
+            <Link
+              href="/dashboard/lifestyle"
+              className="rounded-lg border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-950"
+            >
+              Add Lifestyle Data
+            </Link>
+          </div>
         </section>
 
         {/* Risk Over Time chart (only with 2+ assessments) */}

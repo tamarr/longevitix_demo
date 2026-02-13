@@ -87,6 +87,72 @@ describe("computeRisk", () => {
     expect(miIncrease).toBeGreaterThan(0);
     expect(hfIncrease).toBeGreaterThanOrEqual(0);
   });
+
+  it("reduces scores with low resting HR (55)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withHr = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, restingHr: 55 });
+    expect(withHr.hf).toBeLessThan(baseline.hf);
+    expect(withHr.mi).toBeLessThan(baseline.mi);
+  });
+
+  it("increases scores with high resting HR (105)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withHr = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, restingHr: 105 });
+    expect(withHr.hf).toBeGreaterThan(baseline.hf);
+    expect(withHr.mi).toBeGreaterThan(baseline.mi);
+  });
+
+  it("reduces scores with excellent VO2 max (50)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withVo2 = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, vo2max: 50 });
+    expect(withVo2.mi).toBeLessThan(baseline.mi);
+    expect(withVo2.stroke).toBeLessThan(baseline.stroke);
+    expect(withVo2.hf).toBeLessThan(baseline.hf);
+  });
+
+  it("increases scores with poor VO2 max (20)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withVo2 = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, vo2max: 20 });
+    expect(withVo2.mi).toBeGreaterThan(baseline.mi);
+    expect(withVo2.stroke).toBeGreaterThan(baseline.stroke);
+    expect(withVo2.hf).toBeGreaterThan(baseline.hf);
+  });
+
+  it("reduces scores with high active minutes (350)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withMins = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, activeMinutes: 350 });
+    expect(withMins.mi).toBeLessThan(baseline.mi);
+    expect(withMins.stroke).toBeLessThan(baseline.stroke);
+    expect(withMins.hf).toBeLessThan(baseline.hf);
+  });
+
+  it("increases scores with sedentary lifestyle (30 active minutes)", () => {
+    const baseline = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false });
+    const withMins = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, activeMinutes: 30 });
+    expect(withMins.mi).toBeGreaterThan(baseline.mi);
+    expect(withMins.stroke).toBeGreaterThan(baseline.stroke);
+    expect(withMins.hf).toBeGreaterThan(baseline.hf);
+  });
+
+  it("dampens resting HR effect on MI/stroke vs full effect on HF", () => {
+    // HR 105 → multiplier 1.3
+    // HF gets full 1.3, MI/stroke get dampen(1.3, 0.7) = 1.21
+    const withHr = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false, restingHr: 105 });
+    const baselineOnly = computeRisk({ age: 55, bmi: 22, smoker: false, diabetes: false });
+    const hfIncrease = (withHr.hf - baselineOnly.hf) / Math.max(baselineOnly.hf, 1);
+    const miIncrease = (withHr.mi - baselineOnly.mi) / Math.max(baselineOnly.mi, 1);
+    // HF should see proportionally greater effect from HR than MI
+    expect(hfIncrease).toBeGreaterThanOrEqual(miIncrease);
+  });
+
+  it("combines medical + lifestyle data correctly", () => {
+    const medicalOnly = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, sbp: 150 });
+    const combined = computeRisk({ age: 55, bmi: 26, smoker: false, diabetes: false, sbp: 150, restingHr: 55, vo2max: 50, activeMinutes: 300 });
+    // Protective lifestyle factors should reduce scores compared to medical-only
+    expect(combined.mi).toBeLessThan(medicalOnly.mi);
+    expect(combined.stroke).toBeLessThan(medicalOnly.stroke);
+    expect(combined.hf).toBeLessThan(medicalOnly.hf);
+  });
 });
 
 describe("riskLevel", () => {
@@ -168,5 +234,21 @@ describe("riskExplanation", () => {
     const explanation = riskExplanation("mi", risk.mi, input);
     expect(explanation.summary).toContain(`${risk.mi}%`);
     expect(explanation.summary).toContain("Myocardial Infarction");
+  });
+
+  it("includes lifestyle factors when provided", () => {
+    const input = { age: 55, bmi: 28, smoker: false, diabetes: false, restingHr: 65, vo2max: 40, activeMinutes: 200 };
+    const risk = computeRisk(input);
+    const explanation = riskExplanation("mi", risk.mi, input);
+    // age + bmi + restingHr + vo2max + activeMinutes = 5 factors
+    expect(explanation.factors.length).toBe(5);
+  });
+
+  it("includes both medical and lifestyle factors", () => {
+    const input = { age: 55, bmi: 28, smoker: false, diabetes: false, sbp: 140, restingHr: 65, vo2max: 40, activeMinutes: 200 };
+    const risk = computeRisk(input);
+    const explanation = riskExplanation("mi", risk.mi, input);
+    // age + bmi + sbp + restingHr + vo2max + activeMinutes = 6 factors
+    expect(explanation.factors.length).toBe(6);
   });
 });
