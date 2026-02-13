@@ -99,7 +99,8 @@ export default function DataSourceDialog({
 
       <dialog
         ref={dialogRef}
-        className="w-full max-w-md m-auto rounded-xl border border-teal-100 bg-white p-0 shadow-lg backdrop:bg-black/40 dark:border-zinc-800 dark:bg-zinc-950"
+        className="w-full max-w-md fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+          rounded-xl border border-teal-100 bg-white p-0 shadow-lg backdrop:bg-black/40 dark:border-zinc-800 dark:bg-zinc-950"
       >
         <div className="p-6">
           <div className="mb-4 flex items-center justify-between">

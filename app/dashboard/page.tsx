@@ -132,18 +132,6 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* Risk Over Time chart (only with 2+ assessments) */}
-        {assessments.length >= 2 && (
-          <section className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-zinc-50">
-              Risk Over Time
-            </h2>
-            <div className="rounded-xl border border-teal-100 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-              <RiskChart assessments={chartData} />
-            </div>
-          </section>
-        )}
-
         {/* Latest Assessment risk cards */}
         <section>
           <div className="mb-4">
@@ -178,6 +166,18 @@ export default async function DashboardPage() {
             />
           </div>
         </section>
+
+        {/* Risk Over Time chart (only with 2+ assessments) */}
+        {assessments.length >= 2 && (
+          <section className="mt-8">
+            <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-zinc-50">
+              Risk Over Time
+            </h2>
+            <div className="rounded-xl border border-teal-100 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+              <RiskChart assessments={chartData} />
+            </div>
+          </section>
+        )}
 
         {/* Disclaimer */}
         <footer className="mt-10 border-t border-teal-100 pt-6 dark:border-zinc-800">
