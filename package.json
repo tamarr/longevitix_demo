@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --config=prisma/user.config.ts && prisma generate --config=prisma/health.config.ts && next build",
+    "build": "prisma db push --config=prisma/user.config.ts --skip-generate && prisma db push --config=prisma/health.config.ts --skip-generate && prisma generate --config=prisma/user.config.ts && prisma generate --config=prisma/health.config.ts && next build",
     "postinstall": "prisma generate --config=prisma/user.config.ts && prisma generate --config=prisma/health.config.ts",
     "start": "next start",
     "lint": "eslint",
