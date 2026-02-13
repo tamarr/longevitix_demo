@@ -119,32 +119,6 @@ export default function LifestyleForm() {
         )}
       </div>
 
-      <div>
-        <label
-          htmlFor="spo2"
-          className="mb-1 block text-sm font-medium text-slate-700 dark:text-zinc-300"
-        >
-          SpO2
-        </label>
-        <input
-          type="number"
-          id="spo2"
-          name="spo2"
-          min="70"
-          max="100"
-          step="1"
-          placeholder="97"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-        />
-        {state?.fieldErrors?.spo2 ? (
-          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.fieldErrors.spo2}</p>
-        ) : (
-          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
-            Blood oxygen, typically 95–100%
-          </p>
-        )}
-      </div>
-
       <div className="flex gap-3">
         <Link
           href="/dashboard"

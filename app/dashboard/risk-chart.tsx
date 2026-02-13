@@ -11,6 +11,7 @@ import {
   Legend,
   CartesianGrid,
 } from "recharts";
+import { RISK_TYPES, type ConditionKey } from "@/lib/ui";
 
 export interface AssessmentPoint {
   date: string;
@@ -19,17 +20,7 @@ export interface AssessmentPoint {
   hf: number;
 }
 
-const COLORS = {
-  mi: "#60a5fa",
-  stroke: "#a78bfa",
-  hf: "#fbbf24",
-} as const;
-
-const LABELS: Record<string, string> = {
-  mi: "Heart Attack",
-  stroke: "Stroke",
-  hf: "Heart Failure",
-};
+const CONDITION_KEYS: ConditionKey[] = ["mi", "stroke", "hf"];
 
 function CustomTooltip({
   active,
@@ -48,7 +39,7 @@ function CustomTooltip({
       </p>
       {payload.map((entry) => (
         <p key={entry.dataKey} style={{ color: entry.color }}>
-          {LABELS[entry.dataKey] ?? entry.dataKey}: {entry.value}%
+          {RISK_TYPES[entry.dataKey as ConditionKey]?.label ?? entry.dataKey}: {entry.value}%
         </p>
       ))}
     </div>
@@ -94,33 +85,18 @@ export default function RiskChart({
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Line
-            type="monotone"
-            dataKey="mi"
-            name="Heart Attack"
-            stroke={COLORS.mi}
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="stroke"
-            name="Stroke"
-            stroke={COLORS.stroke}
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="hf"
-            name="Heart Failure"
-            stroke={COLORS.hf}
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
-          />
+          {CONDITION_KEYS.map((key) => (
+            <Line
+              key={key}
+              type="monotone"
+              dataKey={key}
+              name={RISK_TYPES[key].label}
+              stroke={RISK_TYPES[key].chartColor}
+              strokeWidth={2}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </div>

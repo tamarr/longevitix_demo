@@ -1,38 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { riskLevel, type RiskExplanation } from "@/lib/risk";
-import { riskColor } from "@/lib/ui";
-
-const accentMap = {
-  blue: { border: "border-blue-400", shadow: "0 4px 14px -2px rgba(96,165,250,0.3)" },
-  violet: { border: "border-violet-400", shadow: "0 4px 14px -2px rgba(167,139,250,0.3)" },
-  amber: { border: "border-amber-400", shadow: "0 4px 14px -2px rgba(251,191,36,0.3)" },
-} as const;
+import { riskColor, RISK_TYPES, type ConditionKey } from "@/lib/ui";
+import type { RiskExplanation } from "@/lib/risk";
 
 interface RiskCardProps {
-  title: string;
+  conditionKey: ConditionKey;
   score: number;
   explanation: RiskExplanation;
-  accent: keyof typeof accentMap;
+  expanded: boolean;
+  onToggle: () => void;
 }
 
-export default function RiskCard({ title, score, explanation, accent }: RiskCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const level = riskLevel(score);
+export default function RiskCard({ conditionKey, score, explanation, expanded, onToggle }: RiskCardProps) {
+  const { label, accent } = RISK_TYPES[conditionKey];
   const color = riskColor(score);
-  const { border, shadow } = accentMap[accent];
 
   return (
     <div
-      className={`rounded-xl border ${border} border-l-4 bg-white p-5 dark:bg-zinc-950`}
-      style={{ boxShadow: shadow }}
+      className={`rounded-xl border ${accent.border} border-l-4 bg-white p-5 dark:bg-zinc-950`}
+      style={{ boxShadow: accent.shadow }}
     >
       <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-        {title}
+        {label}
       </p>
       <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-zinc-50">
-        {score}%
+        {score}<span className="text-sm">/100</span>
       </p>
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-teal-100 dark:bg-zinc-800">
         <div
@@ -40,16 +32,13 @@ export default function RiskCard({ title, score, explanation, accent }: RiskCard
           style={{ width: `${Math.min(score, 100)}%` }}
         />
       </div>
-      <p className="mt-2 text-xs font-medium text-slate-500 dark:text-zinc-400">
-        {level}
-      </p>
       <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">
         {explanation.summary}
       </p>
 
       <button
         type="button"
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggle}
         className="mt-3 text-xs font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300"
       >
         {expanded ? "Show less" : "Learn more"}

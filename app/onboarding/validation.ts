@@ -14,6 +14,7 @@ const baselineSchema = z.object({
       },
       { message: "Age must be between 18 and 120." }
     ),
+  sex: z.enum(["male", "female"], { message: "Please select your biological sex." }),
   height: z.coerce
     .number({ message: "Height is required." })
     .min(100, "Height must be between 100-250 cm.")

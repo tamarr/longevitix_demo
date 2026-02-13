@@ -30,7 +30,6 @@ const LIFESTYLE_LABELS: Record<string, string> = {
   vo2max: "VO2 Max",
   activeMinutes: "Active Minutes/Week",
   sleepHours: "Sleep Hours",
-  spo2: "SpO2",
 };
 
 const LIFESTYLE_UNITS: Record<string, string> = {
@@ -38,7 +37,6 @@ const LIFESTYLE_UNITS: Record<string, string> = {
   vo2max: "mL/kg/min",
   activeMinutes: "min",
   sleepHours: "hrs",
-  spo2: "%",
 };
 
 function DataList({

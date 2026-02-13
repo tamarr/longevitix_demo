@@ -1,6 +1,6 @@
 # My Heart Tracker
 
-Cardiovascular risk prediction demo. Collects baseline health data via Google OAuth-authenticated onboarding, then allows ongoing lab results and wearable/lifestyle data entry. Computes a Framingham-inspired 10-year risk score for heart attack, stroke, and heart failure, and displays results with trend charts on a dashboard.
+Cardiovascular risk prediction demo. Collects baseline health data via Google OAuth-authenticated onboarding, then allows ongoing lab results and wearable/lifestyle data entry. Computes a simplified risk score (0–100) for heart attack, stroke, and heart failure, and displays results with trend charts on a dashboard.
 
 ## Tech Stack
 
@@ -19,11 +19,12 @@ Cardiovascular risk prediction demo. Collects baseline health data via Google OA
 
 ```
 lib/
-  auth.ts          # NextAuth config + withAuth server action wrapper
+  auth.ts          # NextAuth config, ActionState type, withAuth wrapper, validationError helper
   prisma.ts        # Dual Prisma client singletons (piiPrisma, healthPrisma)
   risk.ts          # Risk calculator: computeRisk, buildRiskInput, riskExplanation
   health.ts        # calculateAge, calculateBmi utilities
-  ui.ts            # Shared UI helpers (score color, label)
+  ui.ts            # ConditionKey type, RISK_TYPES config (labels, accents, chart colors), riskColor, riskLevel
+  assessment.ts    # createAssessment service — orchestrates fetch context, compute risk, persist in transaction
   __tests__/
     risk.test.ts   # Risk engine + buildRiskInput tests
     health.test.ts # Age/BMI calculation tests
@@ -40,24 +41,27 @@ app/
   sign-in-button.tsx   # Google sign-in button (client component)
   onboarding/
     page.tsx           # Auth check + redirect if baseline exists
-    baseline-form.tsx  # Client form (birthdate, height, weight, smoker, diabetes)
-    actions.ts         # Server action: validate, save, compute risk, redirect
+    baseline-form.tsx  # Client form (sex, birthdate, height, weight, smoker, diabetes)
+    actions.ts         # Server action: validate, save baseline + assessment in transaction, redirect
+    validation.ts      # Zod schema for baseline fields
+    __tests__/actions.test.ts
   dashboard/
-    page.tsx           # Profile summary, 10-year risk cards, trend chart, disclaimer
-    risk-card.tsx      # Colored risk card with progress bar
+    page.tsx           # Profile summary, risk cards, trend chart, disclaimer
+    risk-card.tsx      # Colored risk card with progress bar and expandable explanation
+    risk-cards.tsx     # Wrapper managing shared expand state across all cards
     risk-chart.tsx     # Recharts line chart for assessment history
     data-source-dialog.tsx  # Popup showing labs/lifestyle data behind an assessment
     sign-out-button.tsx
     labs/
       page.tsx         # Lab results entry page
       labs-form.tsx    # Form: SBP, LDL, HDL, glucose, triglycerides
-      actions.ts       # Server action: validate, save, recompute risk
+      actions.ts       # Thin server action: validate, delegate to createAssessment
       validation.ts    # Zod schema for lab fields
       __tests__/validation.test.ts
     lifestyle/
       page.tsx         # Lifestyle/wearable data entry page
-      lifestyle-form.tsx  # Form: resting HR, VO2max, active minutes, sleep, SpO2
-      actions.ts       # Server action: validate, save, recompute risk
+      lifestyle-form.tsx  # Form: resting HR, VO2max, active minutes, sleep hours
+      actions.ts       # Thin server action: validate, delegate to createAssessment
       validation.ts    # Zod schema for lifestyle fields
       __tests__/validation.test.ts
   api/auth/[...nextauth]/route.ts
@@ -124,17 +128,20 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## User Flow
 
 1. **Landing page** (`/`) — Google sign-in; authenticated users auto-redirect to dashboard
-2. **Onboarding** (`/onboarding`) — Enter baseline health data (birthdate, height, weight, smoker, diabetes); initial risk assessment computed
-3. **Dashboard** (`/dashboard`) — Profile summary (age, BMI, risk factors), 10-year risk scores for heart attack, stroke, and heart failure, trend chart, and data source details
+2. **Onboarding** (`/onboarding`) — Enter baseline health data (sex, birthdate, height, weight, smoker, diabetes); initial risk assessment computed
+3. **Dashboard** (`/dashboard`) — Profile summary (sex, age, BMI, risk factors), risk scores for heart attack, stroke, and heart failure, trend chart, and data source details
 4. **Lab Results** (`/dashboard/labs`) — Enter clinical lab values (SBP, LDL, HDL, glucose, triglycerides); triggers risk reassessment
-5. **Lifestyle Data** (`/dashboard/lifestyle`) — Enter wearable/lifestyle metrics (resting HR, VO2max, active minutes, sleep hours, SpO2); triggers risk reassessment
+5. **Lifestyle Data** (`/dashboard/lifestyle`) — Enter wearable/lifestyle metrics (resting HR, VO2max, active minutes, sleep hours); triggers risk reassessment
 
 ## Risk Algorithm
 
-Framingham-inspired model computing 10-year risk percentages for heart attack, stroke, and heart failure.
+> **Note:** This is a simplified, non-clinical risk model. The risk factors, multipliers, and their relative weights were developed with AI assistance (Claude) and are not derived from peer-reviewed epidemiological studies like Framingham or ASCVD pooled cohort equations. The model is intended for demonstration purposes only and should not be used for medical decisions.
+
+The algorithm computes a risk score (0–100) for heart attack, stroke, and heart failure.
 
 **Base factors:**
 - Age bracket base risk (30s / 40s / 50s / 60s / 70+)
+- Biological sex relative risk (males have higher MI/HF risk; females have lower baseline)
 - BMI multiplier: normal (1.0x), overweight (1.3x), obese (1.6x)
 - Smoking relative risk: heart attack 2.2x, stroke 1.8x, HF 1.6x
 - Diabetes relative risk: heart attack 1.8x, stroke 2.0x, HF 2.4x
@@ -143,18 +150,22 @@ Framingham-inspired model computing 10-year risk percentages for heart attack, s
 - Systolic blood pressure, LDL/HDL cholesterol, fasting glucose, triglycerides
 
 **Lifestyle/wearable multipliers** (when data available):
-- Resting heart rate, VO2max, weekly active minutes
-- Sleep hours, blood oxygen saturation (SpO2)
+- Resting heart rate, VO2max, weekly active minutes, sleep hours
 
-Each multiplier applies with condition-specific dampening — e.g., SpO2 has full effect on heart failure but dampened effect on heart attack/stroke. Results are clamped to 0-100%.
+Each multiplier applies with condition-specific dampening — e.g., resting heart rate has full effect on heart failure but dampened effect on heart attack/stroke. Results are clamped to 0–100.
+
+Risk levels follow clinical-style thresholds: Low (<5), Borderline (5–9), Moderate (10–19), High (20+).
 
 Risk input construction is centralized in `buildRiskInput()`, so adding a new data field only requires updating the risk engine and the relevant form/validation — callers are untouched.
 
 ## Architecture Decisions
 
 - **PII/PHI separation:** Two databases isolate personally identifiable information from protected health information, following healthcare data handling best practices.
+- **Service layer (`createAssessment`):** Centralized function that fetches context (baseline, latest labs/lifestyle), computes risk, and persists new records inside a Prisma `$transaction` for atomicity.
 - **Centralized risk input (`buildRiskInput`):** Single function owns field extraction from opaque JSON blobs, preventing duplication across server actions.
+- **Structured errors (`ActionState`):** All server actions return `{ error, fieldErrors? } | null`, enabling both banner-level and per-field validation feedback in forms.
 - **Server Actions with `withAuth`:** All data-mutating operations are server actions wrapped in an auth-check helper that injects the authenticated user ID.
+- **Assessment cross-references:** Each assessment stores the IDs of the lab and lifestyle records used to compute it, so the dashboard can show exactly what data informed each score.
 - **JSON data columns:** Lab and lifestyle records store measurements as JSON, allowing schema flexibility without migrations when adding new fields.
 
 ## Available Scripts

@@ -11,7 +11,6 @@ export const submitLifestyle = withAuth(async (userId, formData) => {
     vo2max: formData.get("vo2max") as string,
     activeMinutes: formData.get("activeMinutes") as string,
     sleepHours: formData.get("sleepHours") as string,
-    spo2: formData.get("spo2") as string,
   };
 
   const result = validateLifestyle(raw);

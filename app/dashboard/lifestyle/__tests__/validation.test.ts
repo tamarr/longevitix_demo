@@ -71,7 +71,7 @@ describe("validateLifestyle", () => {
   });
 
   it("accepts vo2max only", () => {
-    const result = validateLifestyle({ restingHr: "", vo2max: "35.5", activeMinutes: "", sleepHours: "", spo2: "" });
+    const result = validateLifestyle({ restingHr: "", vo2max: "35.5", activeMinutes: "", sleepHours: "" });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.vo2max).toBe(35.5);
@@ -79,50 +79,31 @@ describe("validateLifestyle", () => {
   });
 
   it("accepts sleepHours only", () => {
-    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "7.5", spo2: "" });
+    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "7.5" });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.sleepHours).toBe(7.5);
     }
   });
 
-  it("accepts spo2 only", () => {
-    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "", spo2: "97" });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.spo2).toBe(97);
-    }
-  });
-
   it("rejects sleepHours out of range", () => {
-    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "20", spo2: "" });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects spo2 out of range (too low)", () => {
-    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "", spo2: "60" });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects spo2 out of range (too high)", () => {
-    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "", spo2: "105" });
+    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "20" });
     expect(result.success).toBe(false);
   });
 
   it("accepts all fields including wearable data", () => {
     const result = validateLifestyle({
       restingHr: "65", vo2max: "40", activeMinutes: "200",
-      sleepHours: "8", spo2: "98",
+      sleepHours: "8",
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.sleepHours).toBe(8);
-      expect(result.data.spo2).toBe(98);
     }
   });
 
   it("still rejects when all fields are empty", () => {
-    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "", spo2: "" });
+    const result = validateLifestyle({ restingHr: "", vo2max: "", activeMinutes: "", sleepHours: "" });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0].message).toContain("at least one");

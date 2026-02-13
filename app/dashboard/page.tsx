@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { healthPrisma } from "@/lib/prisma";
 import { riskExplanation, buildRiskInput } from "@/lib/risk";
-import RiskCard from "./risk-card";
+import RiskCards from "./risk-cards";
 import RiskChart, { type AssessmentPoint } from "./risk-chart";
 import DataSourceDialog from "./data-source-dialog";
 import SignOutButton from "./sign-out-button";
@@ -22,27 +22,26 @@ export default async function DashboardPage() {
 
   if (!baseline) redirect("/onboarding");
 
-  // Parallel fetch: assessments, latest labs, latest lifestyle
-  const [assessmentsDesc, labs, lifestyle] = await Promise.all([
-    healthPrisma.assessment.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: MAX_ASSESSMENTS,
-    }),
-    healthPrisma.medical.findFirst({
-      where: { userId },
-      orderBy: { recordedAt: "desc" },
-    }),
-    healthPrisma.lifestyle.findFirst({
-      where: { userId },
-      orderBy: { recordedAt: "desc" },
-    }),
-  ]);
+  const assessmentsDesc = await healthPrisma.assessment.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: MAX_ASSESSMENTS,
+  });
 
   if (assessmentsDesc.length === 0) redirect("/onboarding");
 
   const assessments = assessmentsDesc.reverse();
   const assessment = assessments[assessments.length - 1];
+
+  // Fetch the exact labs/lifestyle records used by the latest assessment
+  const [labs, lifestyle] = await Promise.all([
+    assessment.medicalId
+      ? healthPrisma.medical.findUnique({ where: { id: assessment.medicalId } })
+      : null,
+    assessment.lifestyleId
+      ? healthPrisma.lifestyle.findUnique({ where: { id: assessment.lifestyleId } })
+      : null,
+  ]);
 
   // Build risk input with lab and lifestyle data if available
   const labsData = labs?.data as Record<string, number> | null;
@@ -78,6 +77,8 @@ export default async function DashboardPage() {
     return { date: `${base}, ${time}`, mi: a.miScore, stroke: a.strokeScore, hf: a.hfScore };
   });
 
+  const sexLabel = baseline.sex === "male" ? "Male" : "Female";
+
   return (
     <div className="min-h-screen bg-teal-50 dark:bg-black">
       <header className="border-b border-teal-100 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -109,7 +110,7 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-4xl px-6 py-8">
         {/* Condensed profile summary */}
         <section className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-700 dark:text-zinc-300">
-          <span>Age {age}</span>
+          <span>{sexLabel}, Age {age}</span>
           <span className="text-slate-300 dark:text-zinc-400 text-xl">&middot;</span>
           <span>BMI {bmi.toFixed(1)}</span>
           <span className="text-slate-300 dark:text-zinc-400 text-xl">&middot;</span>
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
         <section>
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-zinc-50">
-              10-Year Risk Prediction
+              Cardiovascular Risk Assessment
             </h2>
             <DataSourceDialog
               labsData={labsData}
@@ -145,26 +146,11 @@ export default async function DashboardPage() {
               lifestyleDate={lifestyleDate}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <RiskCard
-              title="Heart Attack"
-              score={assessment.miScore}
-              explanation={miExplanation}
-              accent="blue"
-            />
-            <RiskCard
-              title="Stroke"
-              score={assessment.strokeScore}
-              explanation={strokeExplanation}
-              accent="violet"
-            />
-            <RiskCard
-              title="Heart Failure"
-              score={assessment.hfScore}
-              explanation={hfExplanation}
-              accent="amber"
-            />
-          </div>
+          <RiskCards cards={[
+            { key: "mi", score: assessment.miScore, explanation: miExplanation },
+            { key: "stroke", score: assessment.strokeScore, explanation: strokeExplanation },
+            { key: "hf", score: assessment.hfScore, explanation: hfExplanation },
+          ]} />
         </section>
 
         {/* Risk Over Time chart (only with 2+ assessments) */}

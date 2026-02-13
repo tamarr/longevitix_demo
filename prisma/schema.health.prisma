@@ -13,6 +13,7 @@ model Baseline {
   id        String   @id @default(cuid())
   userId    String   @unique // one baseline per user
   birthdate DateTime
+  sex       String   @default("female") // "male" or "female"
   height    Float
   weight    Float
   smoker    Boolean
@@ -23,7 +24,7 @@ model Lifestyle {
   id         String   @id @default(cuid())
   userId     String
   recordedAt DateTime @default(now())
-  data       Json     // restingHr, vo2max, activeMinutes, sleepHours, spo2
+  data       Json     // restingHr, vo2max, activeMinutes, sleepHours
 
   @@index([userId, recordedAt(sort: Desc)])
 }

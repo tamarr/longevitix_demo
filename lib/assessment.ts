@@ -4,6 +4,9 @@ import { computeRisk, buildRiskInput } from "./risk";
 /**
  * Fetches context (baseline + latest cross-reference data), computes risk,
  * and creates the intake record + assessment in a single transaction.
+ *
+ * The assessment stores IDs for both the new record AND the cross-reference
+ * record, so it fully captures which data was used for computation.
  */
 export async function createAssessment(
   userId: string,
@@ -30,10 +33,10 @@ export async function createAssessment(
   await healthPrisma.$transaction(async (tx) => {
     const medicalId = newLabsData
       ? (await tx.medical.create({ data: { userId, data: newLabsData } })).id
-      : undefined;
+      : existingLabs?.id ?? undefined;
     const lifestyleId = newLifestyleData
       ? (await tx.lifestyle.create({ data: { userId, data: newLifestyleData } })).id
-      : undefined;
+      : existingLifestyle?.id ?? undefined;
 
     await tx.assessment.create({
       data: {

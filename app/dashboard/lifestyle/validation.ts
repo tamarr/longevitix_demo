@@ -30,19 +30,12 @@ const lifestyleSchema = z
         .min(1, "Sleep hours must be between 1–16.")
         .max(16, "Sleep hours must be between 1–16."),
     ]).optional(),
-    spo2: z.union([
-      z.literal("").transform(() => undefined),
-      z.coerce
-        .number({ message: "SpO2 must be a number." })
-        .min(70, "SpO2 must be between 70–100%.")
-        .max(100, "SpO2 must be between 70–100%."),
-    ]).optional(),
   })
   .refine(
     (data) =>
       data.restingHr !== undefined || data.vo2max !== undefined ||
       data.activeMinutes !== undefined ||
-      data.sleepHours !== undefined || data.spo2 !== undefined,
+      data.sleepHours !== undefined,
     { message: "Please provide at least one measurement." }
   );
 

@@ -33,6 +33,27 @@ export default function BaselineForm() {
         )}
       </div>
 
+      <div>
+        <p className="mb-2 text-sm font-medium text-slate-700 dark:text-zinc-300">Biological Sex</p>
+        <div className="flex gap-3">
+          <label className="flex-1">
+            <input type="radio" name="sex" value="male" required className="peer sr-only" />
+            <span className="block cursor-pointer rounded-lg border border-zinc-300 px-4 py-2.5 text-center text-sm font-medium text-slate-700 transition-colors peer-checked:border-teal-600 peer-checked:bg-teal-50 peer-checked:text-teal-700 dark:border-zinc-700 dark:text-zinc-300 dark:peer-checked:border-teal-400 dark:peer-checked:bg-teal-950 dark:peer-checked:text-teal-300">
+              Male
+            </span>
+          </label>
+          <label className="flex-1">
+            <input type="radio" name="sex" value="female" required className="peer sr-only" />
+            <span className="block cursor-pointer rounded-lg border border-zinc-300 px-4 py-2.5 text-center text-sm font-medium text-slate-700 transition-colors peer-checked:border-teal-600 peer-checked:bg-teal-50 peer-checked:text-teal-700 dark:border-zinc-700 dark:text-zinc-300 dark:peer-checked:border-teal-400 dark:peer-checked:bg-teal-950 dark:peer-checked:text-teal-300">
+              Female
+            </span>
+          </label>
+        </div>
+        {state?.fieldErrors?.sex && (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.fieldErrors.sex}</p>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label

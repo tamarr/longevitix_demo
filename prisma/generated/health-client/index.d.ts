@@ -1160,6 +1160,7 @@ export namespace Prisma {
     id: string | null
     userId: string | null
     birthdate: Date | null
+    sex: string | null
     height: number | null
     weight: number | null
     smoker: boolean | null
@@ -1170,6 +1171,7 @@ export namespace Prisma {
     id: string | null
     userId: string | null
     birthdate: Date | null
+    sex: string | null
     height: number | null
     weight: number | null
     smoker: boolean | null
@@ -1180,6 +1182,7 @@ export namespace Prisma {
     id: number
     userId: number
     birthdate: number
+    sex: number
     height: number
     weight: number
     smoker: number
@@ -1202,6 +1205,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     birthdate?: true
+    sex?: true
     height?: true
     weight?: true
     smoker?: true
@@ -1212,6 +1216,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     birthdate?: true
+    sex?: true
     height?: true
     weight?: true
     smoker?: true
@@ -1222,6 +1227,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     birthdate?: true
+    sex?: true
     height?: true
     weight?: true
     smoker?: true
@@ -1319,6 +1325,7 @@ export namespace Prisma {
     id: string
     userId: string
     birthdate: Date
+    sex: string
     height: number
     weight: number
     smoker: boolean
@@ -1348,6 +1355,7 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     birthdate?: boolean
+    sex?: boolean
     height?: boolean
     weight?: boolean
     smoker?: boolean
@@ -1358,6 +1366,7 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     birthdate?: boolean
+    sex?: boolean
     height?: boolean
     weight?: boolean
     smoker?: boolean
@@ -1368,6 +1377,7 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     birthdate?: boolean
+    sex?: boolean
     height?: boolean
     weight?: boolean
     smoker?: boolean
@@ -1378,13 +1388,14 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     birthdate?: boolean
+    sex?: boolean
     height?: boolean
     weight?: boolean
     smoker?: boolean
     diabetes?: boolean
   }
 
-  export type BaselineOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "birthdate" | "height" | "weight" | "smoker" | "diabetes", ExtArgs["result"]["baseline"]>
+  export type BaselineOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "birthdate" | "sex" | "height" | "weight" | "smoker" | "diabetes", ExtArgs["result"]["baseline"]>
 
   export type $BaselinePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Baseline"
@@ -1393,6 +1404,7 @@ export namespace Prisma {
       id: string
       userId: string
       birthdate: Date
+      sex: string
       height: number
       weight: number
       smoker: boolean
@@ -1823,6 +1835,7 @@ export namespace Prisma {
     readonly id: FieldRef<"Baseline", 'String'>
     readonly userId: FieldRef<"Baseline", 'String'>
     readonly birthdate: FieldRef<"Baseline", 'DateTime'>
+    readonly sex: FieldRef<"Baseline", 'String'>
     readonly height: FieldRef<"Baseline", 'Float'>
     readonly weight: FieldRef<"Baseline", 'Float'>
     readonly smoker: FieldRef<"Baseline", 'Boolean'>
@@ -5243,6 +5256,7 @@ export namespace Prisma {
     id: 'id',
     userId: 'userId',
     birthdate: 'birthdate',
+    sex: 'sex',
     height: 'height',
     weight: 'weight',
     smoker: 'smoker',
@@ -5418,6 +5432,7 @@ export namespace Prisma {
     id?: StringFilter<"Baseline"> | string
     userId?: StringFilter<"Baseline"> | string
     birthdate?: DateTimeFilter<"Baseline"> | Date | string
+    sex?: StringFilter<"Baseline"> | string
     height?: FloatFilter<"Baseline"> | number
     weight?: FloatFilter<"Baseline"> | number
     smoker?: BoolFilter<"Baseline"> | boolean
@@ -5428,6 +5443,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     birthdate?: SortOrder
+    sex?: SortOrder
     height?: SortOrder
     weight?: SortOrder
     smoker?: SortOrder
@@ -5441,6 +5457,7 @@ export namespace Prisma {
     OR?: BaselineWhereInput[]
     NOT?: BaselineWhereInput | BaselineWhereInput[]
     birthdate?: DateTimeFilter<"Baseline"> | Date | string
+    sex?: StringFilter<"Baseline"> | string
     height?: FloatFilter<"Baseline"> | number
     weight?: FloatFilter<"Baseline"> | number
     smoker?: BoolFilter<"Baseline"> | boolean
@@ -5451,6 +5468,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     birthdate?: SortOrder
+    sex?: SortOrder
     height?: SortOrder
     weight?: SortOrder
     smoker?: SortOrder
@@ -5469,6 +5487,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Baseline"> | string
     userId?: StringWithAggregatesFilter<"Baseline"> | string
     birthdate?: DateTimeWithAggregatesFilter<"Baseline"> | Date | string
+    sex?: StringWithAggregatesFilter<"Baseline"> | string
     height?: FloatWithAggregatesFilter<"Baseline"> | number
     weight?: FloatWithAggregatesFilter<"Baseline"> | number
     smoker?: BoolWithAggregatesFilter<"Baseline"> | boolean
@@ -5642,6 +5661,7 @@ export namespace Prisma {
     id?: string
     userId: string
     birthdate: Date | string
+    sex?: string
     height: number
     weight: number
     smoker: boolean
@@ -5652,6 +5672,7 @@ export namespace Prisma {
     id?: string
     userId: string
     birthdate: Date | string
+    sex?: string
     height: number
     weight: number
     smoker: boolean
@@ -5662,6 +5683,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     birthdate?: DateTimeFieldUpdateOperationsInput | Date | string
+    sex?: StringFieldUpdateOperationsInput | string
     height?: FloatFieldUpdateOperationsInput | number
     weight?: FloatFieldUpdateOperationsInput | number
     smoker?: BoolFieldUpdateOperationsInput | boolean
@@ -5672,6 +5694,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     birthdate?: DateTimeFieldUpdateOperationsInput | Date | string
+    sex?: StringFieldUpdateOperationsInput | string
     height?: FloatFieldUpdateOperationsInput | number
     weight?: FloatFieldUpdateOperationsInput | number
     smoker?: BoolFieldUpdateOperationsInput | boolean
@@ -5682,6 +5705,7 @@ export namespace Prisma {
     id?: string
     userId: string
     birthdate: Date | string
+    sex?: string
     height: number
     weight: number
     smoker: boolean
@@ -5692,6 +5716,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     birthdate?: DateTimeFieldUpdateOperationsInput | Date | string
+    sex?: StringFieldUpdateOperationsInput | string
     height?: FloatFieldUpdateOperationsInput | number
     weight?: FloatFieldUpdateOperationsInput | number
     smoker?: BoolFieldUpdateOperationsInput | boolean
@@ -5702,6 +5727,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     birthdate?: DateTimeFieldUpdateOperationsInput | Date | string
+    sex?: StringFieldUpdateOperationsInput | string
     height?: FloatFieldUpdateOperationsInput | number
     weight?: FloatFieldUpdateOperationsInput | number
     smoker?: BoolFieldUpdateOperationsInput | boolean
@@ -5929,6 +5955,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     birthdate?: SortOrder
+    sex?: SortOrder
     height?: SortOrder
     weight?: SortOrder
     smoker?: SortOrder
@@ -5944,6 +5971,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     birthdate?: SortOrder
+    sex?: SortOrder
     height?: SortOrder
     weight?: SortOrder
     smoker?: SortOrder
@@ -5954,6 +5982,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     birthdate?: SortOrder
+    sex?: SortOrder
     height?: SortOrder
     weight?: SortOrder
     smoker?: SortOrder

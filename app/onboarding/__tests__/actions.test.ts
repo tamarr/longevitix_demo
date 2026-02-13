@@ -4,6 +4,7 @@ import { validateBaseline } from "../validation";
 describe("validateBaseline", () => {
   const validData = {
     birthdate: "1990-06-15",
+    sex: "male",
     height: "175",
     weight: "70",
     smoker: null,
@@ -61,6 +62,7 @@ describe("validateBaseline", () => {
     const thisYear = new Date().getFullYear();
     const result = validateBaseline({
       birthdate: `${thisYear - 18}-01-01`,
+      sex: "female",
       height: "100",
       weight: "30",
       smoker: "on",

@@ -125,6 +125,7 @@ exports.Prisma.BaselineScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   birthdate: 'birthdate',
+  sex: 'sex',
   height: 'height',
   weight: 'weight',
   smoker: 'smoker',

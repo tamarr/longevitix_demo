@@ -1,18 +1,21 @@
+import { RISK_TYPES, riskLevel, type ConditionKey } from "./ui";
+import { calculateAge, calculateBmi } from "./health";
+
 export interface RiskInput {
   age: number;
   bmi: number;
+  sex: "male" | "female";
   smoker: boolean;
   diabetes: boolean;
-  sbp?: number;   // systolic blood pressure (mmHg)
-  ldl?: number;   // LDL cholesterol (mg/dL)
-  hdl?: number;   // HDL cholesterol (mg/dL)
+  sbp?: number;          // systolic blood pressure (mmHg)
+  ldl?: number;          // LDL cholesterol (mg/dL)
+  hdl?: number;          // HDL cholesterol (mg/dL)
   glucose?: number;      // fasting blood glucose (mg/dL)
   triglycerides?: number; // triglycerides (mg/dL)
   restingHr?: number;     // resting heart rate (bpm)
   vo2max?: number;        // VO2 max (mL/kg/min)
   activeMinutes?: number; // active minutes per week
   sleepHours?: number;    // average sleep per night (hours)
-  spo2?: number;          // blood oxygen saturation (%)
 }
 
 interface RiskResult {
@@ -41,6 +44,11 @@ function bmiMultiplier(bmi: number): number {
   if (bmi < 30) return 1.3;
   return 1.6;
 }
+
+const SEX_RR: Record<string, RiskResult> = {
+  male: { mi: 1.3, stroke: 1.1, hf: 1.2 },
+  female: { mi: 0.7, stroke: 0.9, hf: 0.8 },
+};
 
 function sbpMultiplier(sbp: number): number {
   if (sbp < 120) return 1.0;
@@ -104,13 +112,6 @@ function sleepMultiplier(hours: number): number {
   return 1.2;
 }
 
-function spo2Multiplier(spo2: number): number {
-  if (spo2 >= 96) return 1.0;
-  if (spo2 >= 93) return 1.1;
-  if (spo2 >= 90) return 1.2;
-  return 1.35;
-}
-
 /** Lerp a multiplier toward 1.0 by the given factor (0 = no effect, 1 = full effect) */
 function dampen(multiplier: number, strength: number): number {
   return 1.0 + (multiplier - 1.0) * strength;
@@ -132,6 +133,11 @@ export function computeRisk(input: RiskInput): RiskResult {
 
   for (const key of keys) {
     let score = base[key] * bmiMul;
+
+    // Biological sex
+    const sexRr = SEX_RR[input.sex];
+    if (sexRr) score *= sexRr[key];
+
     if (input.smoker) score *= SMOKING_RR[key];
     if (input.diabetes) score *= DIABETES_RR[key];
 
@@ -169,10 +175,6 @@ export function computeRisk(input: RiskInput): RiskResult {
     if (input.sleepHours !== undefined) {
       score *= sleepMultiplier(input.sleepHours);
     }
-    if (input.spo2 !== undefined) {
-      const mul = spo2Multiplier(input.spo2);
-      score *= key === "hf" ? mul : dampen(mul, 0.6);
-    }
 
     result[key] = clamp(Math.round(score), 0, 100);
   }
@@ -180,26 +182,13 @@ export function computeRisk(input: RiskInput): RiskResult {
   return result as unknown as RiskResult;
 }
 
-export function riskLevel(score: number): string {
-  if (score < 10) return "Low";
-  if (score < 20) return "Moderate";
-  if (score < 30) return "Elevated";
-  return "High";
-}
-
-const CONDITION_LABELS: Record<string, string> = {
-  mi: "Heart Attack",
-  stroke: "Stroke",
-  hf: "Heart Failure",
-};
-
 export function riskExplanation(
-  key: "mi" | "stroke" | "hf",
+  key: ConditionKey,
   score: number,
   input: RiskInput
 ): RiskExplanation {
   const level = riskLevel(score);
-  const label = CONDITION_LABELS[key];
+  const label = RISK_TYPES[key].label;
 
   const factors: string[] = [];
 
@@ -222,6 +211,17 @@ export function riskExplanation(
     factors.push(`BMI ${bmi.toFixed(1)} (overweight) adds +30% risk`);
   } else {
     factors.push(`BMI ${bmi.toFixed(1)} (normal) has no added risk`);
+  }
+
+  // Biological sex
+  const sexRr = SEX_RR[input.sex];
+  if (sexRr) {
+    const mul = sexRr[key];
+    if (mul > 1.0) {
+      factors.push(`Being ${input.sex} adds +${Math.round((mul - 1) * 100)}% ${label.toLowerCase()} risk`);
+    } else if (mul < 1.0) {
+      factors.push(`Being ${input.sex} is protective (-${Math.round((1 - mul) * 100)}% ${label.toLowerCase()} risk)`);
+    }
   }
 
   // Smoking
@@ -329,36 +329,28 @@ export function riskExplanation(
     }
   }
 
-  if (input.spo2 !== undefined) {
-    const mul = spo2Multiplier(input.spo2);
-    if (mul > 1.0) {
-      factors.push(`SpO2 ${input.spo2}% adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`SpO2 ${input.spo2}% is in the normal range`);
-    }
-  }
-
   // Meaning
-  const approxOdds = Math.round(100 / Math.max(score, 1));
   const meaning =
     score < 5
-      ? `A ${score}% 10-year risk means ${label.toLowerCase()} is unlikely in the next decade.`
-      : `A ${score}% 10-year risk means roughly a 1 in ${approxOdds} chance of ${label.toLowerCase()} over the next 10 years.`;
+      ? `A score of ${score} out of 100 suggests ${label.toLowerCase()} risk is low.`
+      : score < 20
+        ? `A score of ${score} out of 100 indicates a moderate level of ${label.toLowerCase()} risk worth monitoring.`
+        : `A score of ${score} out of 100 indicates elevated ${label.toLowerCase()} risk that warrants attention.`;
 
   // Advice
   let advice: string;
-  if (score >= 30) {
+  if (score >= 20) {
     advice = `Your ${label.toLowerCase()} risk is high. Discuss aggressive risk reduction with your doctor, including medication and lifestyle changes.`;
-  } else if (score >= 20) {
-    advice = `Your ${label.toLowerCase()} risk is elevated. Consider discussing statin therapy and blood pressure management with your doctor.`;
   } else if (score >= 10) {
-    advice = `Your ${label.toLowerCase()} risk is moderate. Maintaining a healthy diet, regular exercise, and routine checkups can help.`;
+    advice = `Your ${label.toLowerCase()} risk is moderate. Consider discussing statin therapy and blood pressure management with your doctor.`;
+  } else if (score >= 5) {
+    advice = `Your ${label.toLowerCase()} risk is borderline. Maintaining a healthy diet, regular exercise, and routine checkups can help.`;
   } else {
     advice = `Your ${label.toLowerCase()} risk is low. Continue healthy habits and attend regular checkups.`;
   }
 
   return {
-    summary: `Your ${label} risk is ${level} at ${score}%`,
+    summary: `${level} — ${score} / 100`,
     factors,
     meaning,
     advice,
@@ -370,10 +362,8 @@ export function riskExplanation(
 // baseline profile + opaque labs/lifestyle JSON blobs.
 // ---------------------------------------------------------------------------
 
-import { calculateAge, calculateBmi } from "./health";
-
 const LABS_KEYS = ["sbp", "ldl", "hdl", "glucose", "triglycerides"] as const;
-const LIFESTYLE_KEYS = ["restingHr", "vo2max", "activeMinutes", "sleepHours", "spo2"] as const;
+const LIFESTYLE_KEYS = ["restingHr", "vo2max", "activeMinutes", "sleepHours"] as const;
 
 function pickDefined<K extends string>(
   keys: readonly K[],
@@ -390,13 +380,14 @@ function pickDefined<K extends string>(
 }
 
 export function buildRiskInput(
-  baseline: { birthdate: Date; height: number; weight: number; smoker: boolean; diabetes: boolean },
+  baseline: { birthdate: Date; sex: string; height: number; weight: number; smoker: boolean; diabetes: boolean },
   labsData?: Record<string, number> | null,
   lifestyleData?: Record<string, number> | null,
 ): RiskInput {
   return {
     age: calculateAge(baseline.birthdate),
     bmi: calculateBmi(baseline.weight, baseline.height),
+    sex: baseline.sex as "male" | "female",
     smoker: baseline.smoker,
     diabetes: baseline.diabetes,
     ...pickDefined(LABS_KEYS, labsData),
