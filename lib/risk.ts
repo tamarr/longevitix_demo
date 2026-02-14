@@ -266,7 +266,7 @@ export function riskExplanation(
   }
 
   return {
-    summary: `${level} — ${score} / 100`,
+    summary: `${level} — ${score}%`,
     factors,
     meaning,
     advice,

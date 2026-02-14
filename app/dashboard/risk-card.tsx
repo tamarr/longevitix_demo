@@ -24,7 +24,7 @@ export default function RiskCard({ conditionKey, score, explanation, expanded, o
         {label}
       </p>
       <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-zinc-50">
-        {score}<span className="text-sm">/100</span>
+        {score}%
       </p>
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-teal-100 dark:bg-zinc-800">
         <div

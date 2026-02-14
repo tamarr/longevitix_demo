@@ -251,7 +251,7 @@ describe("riskExplanation", () => {
     const input = { age: 55, bmi: 28, sex: "male" as const, smoker: false, diabetes: false };
     const risk = computeRisk(input);
     const explanation = riskExplanation("mi", risk.mi, input);
-    expect(explanation.summary).toContain(`${risk.mi} / 100`);
+    expect(explanation.summary).toContain(`${risk.mi}%`);
   });
 
   it("includes lifestyle factors when provided", () => {
