@@ -124,62 +124,71 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+// ---------------------------------------------------------------------------
+// Measure factor config — ties each optional input to its multiplier,
+// per-condition dampening, and explanation formatting.
+// ---------------------------------------------------------------------------
+
+type MeasureKey = Exclude<keyof RiskInput, "age" | "bmi" | "sex" | "smoker" | "diabetes">;
+
+interface MeasureFactor {
+  key: MeasureKey;
+  multiplier: (value: number) => number;
+  dampen: Record<ConditionKey, number>;
+  describe: (value: number) => string;
+  describeRisk?: (value: number) => string;
+}
+
+const CONDITION_KEYS: readonly ConditionKey[] = ["mi", "stroke", "hf"];
+
+const MEASURE_FACTORS: MeasureFactor[] = [
+  { key: "sbp",            multiplier: sbpMultiplier,           dampen: { mi: 1, stroke: 1, hf: 1 },     describe: (v) => `Blood pressure ${v} mmHg` },
+  { key: "ldl",            multiplier: ldlMultiplier,           dampen: { mi: 1, stroke: 1, hf: 0.5 },   describe: (v) => `LDL cholesterol ${v} mg/dL` },
+  { key: "hdl",            multiplier: hdlMultiplier,           dampen: { mi: 1, stroke: 1, hf: 0.5 },   describe: (v) => `HDL cholesterol ${v} mg/dL`, describeRisk: (v) => `Low HDL cholesterol ${v} mg/dL` },
+  { key: "glucose",        multiplier: glucoseMultiplier,       dampen: { mi: 1, stroke: 1, hf: 1 },     describe: (v) => `Fasting glucose ${v} mg/dL` },
+  { key: "triglycerides",  multiplier: triglyceridesMultiplier, dampen: { mi: 1, stroke: 0.5, hf: 0.5 }, describe: (v) => `Triglycerides ${v} mg/dL` },
+  { key: "restingHr",      multiplier: restingHrMultiplier,     dampen: { mi: 0.7, stroke: 0.7, hf: 1 }, describe: (v) => `Resting heart rate ${v} bpm` },
+  { key: "vo2max",         multiplier: vo2maxMultiplier,        dampen: { mi: 1, stroke: 1, hf: 1 },     describe: (v) => `VO2 max ${v} mL/kg/min` },
+  { key: "activeMinutes",  multiplier: activeMinutesMultiplier, dampen: { mi: 1, stroke: 1, hf: 1 },     describe: (v) => `Active minutes ${v}/week` },
+  { key: "sleepHours",     multiplier: sleepMultiplier,         dampen: { mi: 1, stroke: 1, hf: 1 },     describe: (v) => `Sleep ${v} hours/night` },
+];
+
 export function computeRisk(input: RiskInput): RiskResult {
   const base = baseRiskByAge(input.age);
   const bmiMul = bmiMultiplier(input.bmi);
+  const sexRr = SEX_RR[input.sex];
+  const result: RiskResult = { mi: 0, stroke: 0, hf: 0 };
 
-  const keys = ["mi", "stroke", "hf"] as const;
-  const result = {} as Record<string, number>;
-
-  for (const key of keys) {
+  for (const key of CONDITION_KEYS) {
     let score = base[key] * bmiMul;
 
-    // Biological sex
-    const sexRr = SEX_RR[input.sex];
     if (sexRr) score *= sexRr[key];
-
     if (input.smoker) score *= SMOKING_RR[key];
     if (input.diabetes) score *= DIABETES_RR[key];
 
-    // Medical multipliers — applied only when data is provided
-    if (input.sbp !== undefined) {
-      score *= sbpMultiplier(input.sbp);
-    }
-    if (input.ldl !== undefined) {
-      const mul = ldlMultiplier(input.ldl);
-      score *= key === "hf" ? dampen(mul, 0.5) : mul;
-    }
-    if (input.hdl !== undefined) {
-      const mul = hdlMultiplier(input.hdl);
-      score *= key === "hf" ? dampen(mul, 0.5) : mul;
-    }
-    if (input.glucose !== undefined) {
-      score *= glucoseMultiplier(input.glucose);
-    }
-    if (input.triglycerides !== undefined) {
-      const mul = triglyceridesMultiplier(input.triglycerides);
-      score *= key === "mi" ? mul : dampen(mul, 0.5);
-    }
-
-    // Lifestyle multipliers — applied only when data is provided
-    if (input.restingHr !== undefined) {
-      const mul = restingHrMultiplier(input.restingHr);
-      score *= key === "hf" ? mul : dampen(mul, 0.7);
-    }
-    if (input.vo2max !== undefined) {
-      score *= vo2maxMultiplier(input.vo2max);
-    }
-    if (input.activeMinutes !== undefined) {
-      score *= activeMinutesMultiplier(input.activeMinutes);
-    }
-    if (input.sleepHours !== undefined) {
-      score *= sleepMultiplier(input.sleepHours);
+    for (const factor of MEASURE_FACTORS) {
+      const value = input[factor.key];
+      if (value !== undefined) {
+        score *= dampen(factor.multiplier(value), factor.dampen[key]);
+      }
     }
 
     result[key] = clamp(Math.round(score), 0, 100);
   }
 
-  return result as unknown as RiskResult;
+  return result;
+}
+
+function describeMultiplier(factor: MeasureFactor, value: number, mul: number): string {
+  const display = factor.describe(value);
+  if (mul > 1.0) {
+    const label = factor.describeRisk?.(value) ?? display;
+    return `${label} adds +${Math.round((mul - 1) * 100)}% risk`;
+  }
+  if (mul < 1.0) {
+    return `${display} is protective (-${Math.round((1 - mul) * 100)}%)`;
+  }
+  return `${display} is in the normal range`;
 }
 
 export function riskExplanation(
@@ -192,7 +201,7 @@ export function riskExplanation(
 
   const factors: string[] = [];
 
-  // Age factor
+  // Baseline factors (non-configurable — each has unique explanation logic)
   if (input.age >= 70) {
     factors.push(`Age ${input.age} significantly increases base risk`);
   } else if (input.age >= 60) {
@@ -203,7 +212,6 @@ export function riskExplanation(
     factors.push(`Age ${input.age} contributes low base risk`);
   }
 
-  // BMI factor
   const bmi = input.bmi;
   if (bmi >= 30) {
     factors.push(`BMI ${bmi.toFixed(1)} (obese) adds +60% risk`);
@@ -213,7 +221,6 @@ export function riskExplanation(
     factors.push(`BMI ${bmi.toFixed(1)} (normal) has no added risk`);
   }
 
-  // Biological sex
   const sexRr = SEX_RR[input.sex];
   if (sexRr) {
     const mul = sexRr[key];
@@ -224,112 +231,22 @@ export function riskExplanation(
     }
   }
 
-  // Smoking
   if (input.smoker) {
     factors.push(`Smoking increases ${label.toLowerCase()} risk by ${Math.round((SMOKING_RR[key] - 1) * 100)}%`);
   }
 
-  // Diabetes
   if (input.diabetes) {
     factors.push(`Diabetes increases ${label.toLowerCase()} risk by ${Math.round((DIABETES_RR[key] - 1) * 100)}%`);
   }
 
-  // Medical factors — only if provided
-  if (input.sbp !== undefined) {
-    const mul = sbpMultiplier(input.sbp);
-    if (mul > 1.0) {
-      factors.push(`Blood pressure ${input.sbp} mmHg adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`Blood pressure ${input.sbp} mmHg is in the normal range`);
+  // Measure factors — driven by MEASURE_FACTORS config
+  for (const factor of MEASURE_FACTORS) {
+    const value = input[factor.key];
+    if (value !== undefined) {
+      factors.push(describeMultiplier(factor, value, factor.multiplier(value)));
     }
   }
 
-  if (input.ldl !== undefined) {
-    const mul = ldlMultiplier(input.ldl);
-    if (mul > 1.0) {
-      factors.push(`LDL cholesterol ${input.ldl} mg/dL adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else if (mul < 1.0) {
-      factors.push(`LDL cholesterol ${input.ldl} mg/dL is protective (-${Math.round((1 - mul) * 100)}%)`);
-    } else {
-      factors.push(`LDL cholesterol ${input.ldl} mg/dL is in the normal range`);
-    }
-  }
-
-  if (input.hdl !== undefined) {
-    const mul = hdlMultiplier(input.hdl);
-    if (mul < 1.0) {
-      factors.push(`HDL cholesterol ${input.hdl} mg/dL is protective (-${Math.round((1 - mul) * 100)}%)`);
-    } else if (mul > 1.0) {
-      factors.push(`Low HDL cholesterol ${input.hdl} mg/dL adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`HDL cholesterol ${input.hdl} mg/dL is in the normal range`);
-    }
-  }
-
-  if (input.glucose !== undefined) {
-    const mul = glucoseMultiplier(input.glucose);
-    if (mul > 1.0) {
-      factors.push(`Fasting glucose ${input.glucose} mg/dL adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`Fasting glucose ${input.glucose} mg/dL is in the normal range`);
-    }
-  }
-
-  if (input.triglycerides !== undefined) {
-    const mul = triglyceridesMultiplier(input.triglycerides);
-    if (mul > 1.0) {
-      factors.push(`Triglycerides ${input.triglycerides} mg/dL adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`Triglycerides ${input.triglycerides} mg/dL is in the normal range`);
-    }
-  }
-
-  // Lifestyle factors — only if provided
-  if (input.restingHr !== undefined) {
-    const mul = restingHrMultiplier(input.restingHr);
-    if (mul < 1.0) {
-      factors.push(`Resting heart rate ${input.restingHr} bpm is protective (-${Math.round((1 - mul) * 100)}%)`);
-    } else if (mul > 1.0) {
-      factors.push(`Resting heart rate ${input.restingHr} bpm adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`Resting heart rate ${input.restingHr} bpm is in the normal range`);
-    }
-  }
-
-  if (input.vo2max !== undefined) {
-    const mul = vo2maxMultiplier(input.vo2max);
-    if (mul < 1.0) {
-      factors.push(`VO2 max ${input.vo2max} mL/kg/min is protective (-${Math.round((1 - mul) * 100)}%)`);
-    } else if (mul > 1.0) {
-      factors.push(`VO2 max ${input.vo2max} mL/kg/min adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`VO2 max ${input.vo2max} mL/kg/min is in the normal range`);
-    }
-  }
-
-  if (input.activeMinutes !== undefined) {
-    const mul = activeMinutesMultiplier(input.activeMinutes);
-    if (mul < 1.0) {
-      factors.push(`Active minutes ${input.activeMinutes}/week is protective (-${Math.round((1 - mul) * 100)}%)`);
-    } else if (mul > 1.0) {
-      factors.push(`Active minutes ${input.activeMinutes}/week adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`Active minutes ${input.activeMinutes}/week is in the normal range`);
-    }
-  }
-
-  if (input.sleepHours !== undefined) {
-    const mul = sleepMultiplier(input.sleepHours);
-    if (mul < 1.0) {
-      factors.push(`Sleep ${input.sleepHours} hours/night is protective (-${Math.round((1 - mul) * 100)}%)`);
-    } else if (mul > 1.0) {
-      factors.push(`Sleep ${input.sleepHours} hours/night adds +${Math.round((mul - 1) * 100)}% risk`);
-    } else {
-      factors.push(`Sleep ${input.sleepHours} hours/night is in the normal range`);
-    }
-  }
-
-  // Meaning
   const meaning =
     score < 5
       ? `A score of ${score} out of 100 suggests ${label.toLowerCase()} risk is low.`
@@ -337,7 +254,6 @@ export function riskExplanation(
         ? `A score of ${score} out of 100 indicates a moderate level of ${label.toLowerCase()} risk worth monitoring.`
         : `A score of ${score} out of 100 indicates elevated ${label.toLowerCase()} risk that warrants attention.`;
 
-  // Advice
   let advice: string;
   if (score >= 20) {
     advice = `Your ${label.toLowerCase()} risk is high. Discuss aggressive risk reduction with your doctor, including medication and lifestyle changes.`;

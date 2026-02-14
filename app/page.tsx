@@ -14,8 +14,7 @@ export default async function Home() {
           My Heart Tracker
         </h1>
         <p className="text-lg text-slate-600 dark:text-slate-400">
-          Understand your 10-year cardiovascular risk with a simple health
-          assessment powered by Framingham-inspired modeling.
+        Understand your cardiovascular risk with a simple health assessment tracking tool, powered by multi-factor risk modeling.
         </p>
         <SignInButton />
       </main>

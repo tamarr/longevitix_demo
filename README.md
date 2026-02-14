@@ -2,6 +2,8 @@
 
 Cardiovascular risk prediction demo. Collects baseline health data via Google OAuth-authenticated onboarding, then allows ongoing lab results and wearable/lifestyle data entry. Computes a simplified risk score (0–100) for heart attack, stroke, and heart failure, and displays results with trend charts on a dashboard.
 
+The app can be found live on: https://longevitix-demo.onrender.com
+
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router, Server Actions, React 19)
@@ -135,7 +137,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Risk Algorithm
 
-> **Note:** This is a simplified, non-clinical risk model. The risk factors, multipliers, and their relative weights were developed with AI assistance (Claude) and are not derived from peer-reviewed epidemiological studies like Framingham or ASCVD pooled cohort equations. The model is intended for demonstration purposes only and should not be used for medical decisions.
+> **Note:** This is a simplified, non-clinical risk model. The risk factors, multipliers, and their relative weights were developed with AI assistance (Claude and ChatGPT) and are Framingham and ASCVD insipired.
 
 The algorithm computes a risk score (0–100) for heart attack, stroke, and heart failure.
 
